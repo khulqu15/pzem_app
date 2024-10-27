@@ -2,8 +2,14 @@
   <ion-page>
     <ion-content :fullscreen="true">
       <div class="min-h-screen w-full relative bg-base-200 text-base-content">
-        <div class="p-5 bg-base-100 w-full">
-          <h2>ECG Generator Simulation</h2>
+        <div class="py-2 px-4 bg-base-100 w-full flex items-center justify-between">
+          <div class="w-full">
+            <h2>ECG Generator Simulation</h2>
+          </div>
+          <div class="flex items-center gap-3">
+            <button class="btn btn-base-300" @click="$router.push({name: 'Home'})">Home</button>
+            <button class="btn btn-base-300" @click="$router.push({name: 'Simulation'})">Sim</button>
+          </div>
         </div>
         <input type="checkbox" id="insert_modal" class="modal-toggle" />
         <div role="dialog" class="modal">
@@ -41,25 +47,27 @@
                   <button @click="deleteWave(index)" class="btn btn-error btn-xs text-white">Delete</button>
                 </div>
               </div>
-              <button @click="processSignal()" v-if="selectedWave != 1" class="btn btn-primary w-full mt-4 text-white">Process Signal</button>
+              <button @click="processSignal()" v-if="selectedWave != -1" class="btn btn-primary w-full mt-4 text-white">Process Signal</button>
             </card-view-vue>
           </div>
 
           <div class="col-span-4 md:col-span-2 p-4 text-left w-full space-y-2">
-            <card-view-vue header="Chart Plotting">
-              <div v-if="selectedWave == -1">
-                <waves-chart-vue 
-                  :wave-data="waves.map(wave => wave.data)" 
-                  :wave-names="waves.map(wave => wave.name)" 
-                />
-              </div>
-              <div v-else>
-                <waves-chart-vue 
-                  :wave-data="[waves[selectedWave].data]" 
-                  :wave-names="[waves[selectedWave].name]" 
-                />
-              </div>
-            </card-view-vue>
+            <div v-if="waves.length > 0">
+              <card-view-vue header="Chart Plotting">
+                <div v-if="selectedWave == -1">
+                  <waves-chart-vue 
+                    :wave-data="waves.map(wave => wave.data)" 
+                    :wave-names="waves.map(wave => wave.name)" 
+                  />
+                </div>
+                <div v-else>
+                  <waves-chart-vue 
+                    :wave-data="[waves[selectedWave].data]" 
+                    :wave-names="[waves[selectedWave].name]" 
+                  />
+                </div>
+              </card-view-vue>
+            </div>
           </div>
 
           <div class="col-span-4 md:col-span-1 p-4 text-left w-full space-y-2">
@@ -113,7 +121,8 @@
 <script setup lang="ts">
 import CardViewVue from '@/components/CardView.vue';
 import { IonContent, IonPage } from '@ionic/vue';
-import { ref, Ref } from 'vue';
+import { ref, Ref, onMounted } from 'vue';
+import { database, ref as firebaseRef, get } from '@/firebaseConfig';
 import WavesChartVue from '@/components/WavesChart.vue';
 import * as XLSX from 'xlsx'
 
@@ -121,7 +130,9 @@ const selectedWave: Ref<any> = ref(-1);
 const form_input: Ref<{name: String}> = ref({
   name: ""
 })
-
+onMounted(() => {
+  fetchDataFromFirebase();
+});
 const outputData: Ref<any> = ref({
   average: 0,
   standardDeviation: 0,
@@ -143,44 +154,45 @@ type Wave = {
   data: WaveData[];
 };
 
-const waves: Ref<Wave[]> = ref([
-  {
-    name: "ECG Waves",
-    data: Array.from({ length: 10 }, () => ({
-      value: generateRandomValue(8, 14),
-      date: generateRandomDate(new Date('2024-08-10T10:23:00'), new Date('2024-08-10T10:29:00'))
-    }))
-  },
-  {
-    name: "EMG Waves",
-    data: Array.from({ length: 10 }, () => ({
-      value: generateRandomValue(8, 14),
-      date: generateRandomDate(new Date('2024-08-10T10:23:00'), new Date('2024-08-10T10:29:00'))
-    }))
-  },
-  {
-    name: "EEG Waves",
-    data: Array.from({ length: 10 }, () => ({
-      value: generateRandomValue(8, 14),
-      date: generateRandomDate(new Date('2024-08-10T10:23:00'), new Date('2024-08-10T10:29:00'))
-    }))
-  },
-  {
-    name: "Otot Waves",
-    data: Array.from({ length: 10 }, () => ({
-      value: generateRandomValue(8, 14),
-      date: generateRandomDate(new Date('2024-08-10T10:23:00'), new Date('2024-08-10T10:29:00'))
-    }))
-  },
-  {
-    name: "Otak Waves",
-    data: Array.from({ length: 10 }, () => ({
-      value: generateRandomValue(8, 14),
-      date: generateRandomDate(new Date('2024-08-10T10:23:00'), new Date('2024-08-10T10:29:00'))
-    }))
-  },
-])
+async function fetchDataFromFirebase() {
+  try {
+    const snapshot = await get(firebaseRef(database, 'ads_data'));
+    if (snapshot.exists()) {
+      const data = snapshot.val();
 
+      // Organize data into ADC and Volts waves
+      const adcWave = [];
+      const voltsWave = [];
+
+      for (const key in data) {
+        const entry = data[key];
+        // Add ADC values
+        adcWave.push(...entry.ain.map((value: number, index: number) => ({
+          value,
+          date: new Date(entry.timestamp + index * 1000).toISOString(),
+        })));
+        // Add Volts values
+        voltsWave.push(...entry.volts.map((value: number, index: number) => ({
+          value,
+          date: new Date(entry.timestamp + index * 1000).toISOString(),
+        })));
+      }
+
+      // Update waves data
+      waves.value[0].data = adcWave;
+      waves.value[1].data = voltsWave;
+    } else {
+      console.log("No data available");
+    }
+  } catch (error) {
+    console.error("Error fetching data from Firebase:", error);
+  }
+}
+
+const waves = ref([
+  { name: 'ADC Waves', data: [] as { value: number; date: string }[] },
+  { name: 'Volts Waves', data: [] as { value: number; date: string }[] },
+]);
 
 function generateRandomValue(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;

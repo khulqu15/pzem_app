@@ -1,6 +1,6 @@
 <template>
     <div>
-      <Line :data="chartData" :options="chartOptions" />
+        <Line :data="chartData" :options="chartOptions" />
     </div>
 </template>
 
@@ -16,12 +16,13 @@ import {
     Tooltip,
     ChartOptions,
     ChartData,
-    Legend
-} from 'chart.js'
-import { Line } from 'vue-chartjs'
+    Legend,
+    Filler
+} from 'chart.js';
+import { Line } from 'vue-chartjs';
+import zoomPlugin from 'chartjs-plugin-zoom';
 
-// Daftarkan semua plugin yang diperlukan
-Chartjs.register(LineElement, PointElement, LinearScale, Title, CategoryScale, Tooltip, Legend);
+Chartjs.register(LineElement, PointElement, LinearScale, Title, CategoryScale, Tooltip, Legend, Filler, zoomPlugin);
 
 export default defineComponent({
     name: "WaveChart",
@@ -73,7 +74,22 @@ export default defineComponent({
                 },
                 tooltip: {
                     enabled: true,
-                }
+                },
+                zoom: {
+                    pan: {
+                        enabled: true,
+                        mode: 'xy',
+                    },
+                    zoom: {
+                        wheel: {
+                            enabled: true,
+                        },
+                        pinch: {
+                            enabled: true,
+                        },
+                        mode: 'xy',
+                    },
+                },
             },
             scales: {
                 x: {
@@ -89,7 +105,7 @@ export default defineComponent({
                         display: true,
                         text: 'Value',
                     },
-                    min: 0,
+                    min: -20,
                     max: 20,
                 },
             },
