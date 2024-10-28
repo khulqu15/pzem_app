@@ -25,7 +25,7 @@
                             <div class="grid grid-cols-2 gap-3">
                                 <div class="form-control">
                                     <label for="time" class="capitalize">time</label>
-                                    <input id="time" ty pe="time" class="input input-bordered w-full" v-model="time">
+                                    <input id="time" type="time" class="input input-bordered w-full" v-model="time">
                                 </div>
                                 <div class="form-control">
                                     <label for="duration" class="capitalize">duration (minutes)</label>
