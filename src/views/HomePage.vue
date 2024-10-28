@@ -4,50 +4,45 @@
       <div class="min-h-screen w-full relative bg-base-200 text-base-content">
         <div class="py-2 px-4 bg-base-100 w-full flex items-center justify-between">
           <div class="w-full">
-            <h2>ECG Generator Simulation</h2>
+            <h2>Love Bird</h2>
           </div>
           <div class="flex items-center gap-3">
             <button class="btn btn-base-300" @click="$router.push({name: 'Home'})">Home</button>
-            <button class="btn btn-base-300" @click="$router.push({name: 'Simulation'})">Sim</button>
-          </div>
-        </div>
-        <input type="checkbox" id="insert_modal" class="modal-toggle" />
-        <div role="dialog" class="modal">
-          <div class="modal-box">
-            <h3 class="text-lg font-bold">Insert Data</h3>
-            <p class="pb-4">Fill these inputs first</p>
-            <form>
-              <div class="form_control">
-                <label for="name_input">Data name</label>
-                <input v-model="form_input.name" type="text" id="name_input" placeholder="ECG Signal" class="input input-bordered w-full mt-2" />
-              </div>
-              <div class="flex mt-3 gap-4 justify-end">
-                <label for="insert_modal" class="btn bg-base-200 text-white">Cancel</label>
-                <label for="insert_modal" @click="insertData()" type="button" class="btn bg-primary text-white">Insert Data</label>
-              </div>
-            </form>
+            <button class="btn btn-base-300" @click="$router.push({name: 'Scheduling'})">Scheduling</button>
           </div>
         </div>
         <div class="grid grid-cols-4 min-h-[88vh] items-center justify-items-center">
-          <div class="col-span-4 md:col-span-1 p-4 text-left w-full space-y-2">
-            <card-view-vue header="Input">
-              <div class="flex w-full gap-3 justify-items-center justify-center mb-4">
-                <label for="insert_modal" class="btn btn-primary text-white">Insert</label>
-                <button @click="clearData()" class="btn btn-error text-white">Clear</button>
+          <div class="col-span-4 md:col-span-2 p-4 text-left w-full space-y-2">
+            <img src="/public/banner.png" class="w-full shadow-xl rounded-3xl" alt="">
+            <card-view-vue header="Data Table">
+              <div class="flex items-center gap-3 mb-6">
+                <button class="btn btn-primary" @click="exportToExcel()">Export Excel</button>
+                <button class="btn btn-error" @click="deleteAll()">Delete All</button>
               </div>
-            </card-view-vue>
-
-            <card-view-vue header="Select R-R Wave">
-              <div class="h-64 max-h-[160px] pr-3 overflow-auto">
-                <div @click="selectedWave = -1" class="my-1 hover:bg-base-200 py-2 px-3 rounded-xl" :class="{'bg-base-200': selectedWave == -1}">
-                  Select All
-                </div>
-                <div @click="selectedWave = index" class="my-1 hover:bg-base-200 py-2 px-3 rounded-xl flex gap-2" :class="{'bg-base-200': selectedWave == index}" v-for="(item, index) in waves" :key="index">
-                  <input v-model="item.name" class="input input-bordered w-full input-xs" />
-                  <button @click="deleteWave(index)" class="btn btn-error btn-xs text-white">Delete</button>
-                </div>
+              <div class="w-full max-h-[60vh] h-[20vh] overflow-auto">
+                <table class="table table-sm">
+                  <thead>
+                    <tr>
+                      <th></th>
+                      <th>Load Cell</th>
+                      <th>Water Level</th>
+                      <th>Timestamp</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(item, index) in tableData" :key="index">
+                      <th>{{ index + 1 }}</th>
+                      <td>{{ item.loadcell }} gram</td>
+                      <td>{{ item.water_level }} mm</td>
+                      <td>{{ item.timestamp }}</td>
+                      <td>
+                        <button @click="deleteByKey(item.key)" class="btn btn-error btn-sm">Delete</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
-              <button @click="processSignal()" v-if="selectedWave != -1" class="btn btn-primary w-full mt-4 text-white">Process Signal</button>
             </card-view-vue>
           </div>
 
@@ -70,48 +65,6 @@
             </div>
           </div>
 
-          <div class="col-span-4 md:col-span-1 p-4 text-left w-full space-y-2">
-            <card-view-vue header="Output">
-              <div class="space-y-3">
-                <div class="flex px-4 justify-between items-center">
-                  <div>Average</div>
-                  <div class="font-bold bg-primary px-4 py-1 rounded-xl text-white">{{ outputData.average }}</div>
-                </div>
-                <div class="flex px-4 justify-between items-center">
-                  <div>Deviation</div>
-                  <div class="font-bold bg-primary px-4 py-1 rounded-xl text-white">{{ outputData.standardDeviation }}</div>
-                </div>
-                <div class="flex px-4 justify-between items-center">
-                  <div>Min</div>
-                  <div class="font-bold bg-primary px-4 py-1 rounded-xl text-white">{{ outputData.min }}</div>
-                </div>
-                <div class="flex px-4 justify-between items-center">
-                  <div>Max</div>
-                  <div class="font-bold bg-primary px-4 py-1 rounded-xl text-white">{{ outputData.max }}</div>
-                </div>
-                <div class="flex px-4 justify-between items-center">
-                  <div>Noise</div>
-                  <div class="font-bold bg-primary px-4 py-1 rounded-xl text-white">{{ outputData.noise }}</div>
-                </div>
-                <div class="flex px-4 justify-between items-center">
-                  <div>Amplitude</div>
-                  <div class="font-bold bg-primary px-4 py-1 rounded-xl text-white">{{ outputData.amplitude }}</div>
-                </div>
-                <div class="flex px-4 justify-between items-center">
-                  <div>Frequency</div>
-                  <div class="font-bold bg-primary px-4 py-1 rounded-xl text-white">{{ outputData.frequency }}</div>
-                </div>
-                <div class="flex px-4 justify-between items-center">
-                  <div>Phase</div>
-                  <div class="font-bold bg-primary px-4 py-1 rounded-xl text-white">{{ outputData.phase }}</div>
-                </div>
-              </div>
-              <div class="flex w-full gap-3 justify-items-center justify-center mt-4">
-                <button @click="exportToExcel()" class="btn btn-primary text-white">Convert</button>
-                <button @click="clearOutput()" class="btn btn-error text-white">Clear</button>
-              </div>
-            </card-view-vue>
-          </div>
         </div>
       </div>
     </ion-content>
@@ -123,64 +76,58 @@ import CardViewVue from '@/components/CardView.vue';
 import { IonContent, IonPage } from '@ionic/vue';
 import { ref, Ref, onMounted } from 'vue';
 import { database, ref as firebaseRef, get } from '@/firebaseConfig';
+import { remove, child } from 'firebase/database';
 import WavesChartVue from '@/components/WavesChart.vue';
 import * as XLSX from 'xlsx'
 
 const selectedWave: Ref<any> = ref(-1);
-const form_input: Ref<{name: String}> = ref({
-  name: ""
-})
+const tableData: Ref<any> = ref([])
+
 onMounted(() => {
   fetchDataFromFirebase();
-});
-const outputData: Ref<any> = ref({
-  average: 0,
-  standardDeviation: 0,
-  min: 0,
-  max: 0,
-  noise: 0,
-  amplitude: 0,
-  frequency: 0,
-  phase: 0
+  document.documentElement.setAttribute('data-theme', 'light')
 });
 
-type WaveData = {
-  value: number;
-  date: string;
-};
-
-type Wave = {
-  name: string;
-  data: WaveData[];
-};
 
 async function fetchDataFromFirebase() {
   try {
-    const snapshot = await get(firebaseRef(database, 'ads_data'));
+    const snapshot = await get(firebaseRef(database, 'love_bird/data'));
     if (snapshot.exists()) {
       const data = snapshot.val();
+      tableData.value = Object.entries(data).map(([key, value]: any) => ({
+        key,
+        loadcell: value.load_cell,
+        timestamp: value.timestamp,
+        water_level: value.water_level
+      }));
 
-      // Organize data into ADC and Volts waves
-      const adcWave = [];
-      const voltsWave = [];
+      const loadCells = [];
+      const waterLevels = [];
 
       for (const key in data) {
         const entry = data[key];
-        // Add ADC values
-        adcWave.push(...entry.ain.map((value: number, index: number) => ({
-          value,
-          date: new Date(entry.timestamp + index * 1000).toISOString(),
-        })));
-        // Add Volts values
-        voltsWave.push(...entry.volts.map((value: number, index: number) => ({
-          value,
-          date: new Date(entry.timestamp + index * 1000).toISOString(),
-        })));
+        const [datePart, timePart] = entry.timestamp.split(" ");
+        const [day, month, year] = datePart.split("/");
+        const formattedDate = `${year}-${month}-${day}T${timePart}:00`;
+
+        const date = new Date(formattedDate);
+        if (!isNaN(date.getTime())) {
+            loadCells.push({
+                value: entry.load_cell,
+                date: formattedDate
+            });
+
+            waterLevels.push({
+                value: entry.water_level,
+                date: formattedDate
+            });
+        } else {
+            console.error("Invalid date:", entry.timestamp);
+        }
       }
 
-      // Update waves data
-      waves.value[0].data = adcWave;
-      waves.value[1].data = voltsWave;
+      waves.value[0].data = loadCells;
+      waves.value[1].data = waterLevels;
     } else {
       console.log("No data available");
     }
@@ -190,83 +137,29 @@ async function fetchDataFromFirebase() {
 }
 
 const waves = ref([
-  { name: 'ADC Waves', data: [] as { value: number; date: string }[] },
-  { name: 'Volts Waves', data: [] as { value: number; date: string }[] },
+  { name: 'Load Cell', data: [] as { value: number; date: string }[] },
+  { name: 'Water Level', data: [] as { value: number; date: string }[] },
 ]);
 
-function generateRandomValue(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
 
-function generateRandomDate(start: Date, end: Date): string {
-  const date = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
-  return date.toISOString().slice(0, 19).replace('T', ' ');
-}
-
-function insertData() {
-  let temp_data: Wave[] = [{
-    name: form_input.value && form_input.value.name ? form_input.value.name.toString() : 'Dummy Data',
-    data: Array.from({ length: 10 }, () => ({
-      value: generateRandomValue(8, 14),
-      date: generateRandomDate(new Date('2024-08-10T10:23:00'), new Date('2024-08-10T10:29:00'))
-    }))
-  }]
-
-  waves.value.push(...temp_data)
-}
-
-function clearData() {
-  let temp_data = []
-  waves.value = []
-}
-
-function processSignal() {
-  if (selectedWave.value !== -1) {
-    const wave = waves.value[selectedWave.value].data;
-    const total = wave.reduce((acc: any, point: { value: any; }) => acc + point.value, 0);
-    const average = total / wave.length;
-
-    const deviations = wave.map((point: { value: number; }) => (point.value - average) ** 2);
-    const variance = deviations.reduce((acc: any, dev: any) => acc + dev, 0) / wave.length;
-    const stdDeviation = Math.sqrt(variance);
-    const standardDeviation = stdDeviation.toFixed(2)
-
-    const min = Math.min(...wave.map((point: { value: any; }) => point.value));
-    const max = Math.max(...wave.map((point: { value: any; }) => point.value));
-
-    const noise = standardDeviation;
-    const amplitude = max - min;
-    const frequency = 1;
-    const phase = 0;
-
-    outputData.value = {
-      average,
-      standardDeviation,
-      min,
-      max,
-      noise,
-      amplitude,
-      frequency,
-      phase
-    };
+async function deleteByKey(key: string) {
+  try {
+    await remove(firebaseRef(database, `love_bird/data/${key}`));
+    tableData.value = tableData.value.filter((item: any) => item.key !== key);
+    console.log(`Entry with key ${key} deleted successfully`);
+  } catch (error) {
+    console.error(`Error deleting entry with key ${key}:`, error);
   }
 }
 
-function clearOutput() {
-  outputData.value.average = 0
-  outputData.value.standardDeviation = 0
-  outputData.value.min = 0
-  outputData.value.max = 0
-  outputData.value.noise = 0
-  outputData.value.amplitude = 0
-  outputData.value.frequency = 0
-  outputData.value.phase = 0
-}
-
-function deleteWave(index: number) {
-  waves.value.splice(index, 1);
-  if (selectedWave.value === index) selectedWave.value = -1
-  else if (selectedWave.value > index) selectedWave.value -= 1
+async function deleteAll() {
+  try {
+    await remove(firebaseRef(database, 'love_bird/data'));
+    tableData.value = [];
+    console.log("All entries deleted successfully");
+  } catch (error) {
+    console.error("Error deleting all entries:", error);
+  }
 }
 
 function exportToExcel() {
@@ -289,21 +182,8 @@ function exportToExcel() {
     })))
   );
 
-  const outputSheet = XLSX.utils.json_to_sheet([
-    { Metric: 'Average', Value: outputData.value.average },
-    { Metric: 'Standard Deviation', Value: outputData.value.standardDeviation },
-    { Metric: 'Min', Value: outputData.value.min },
-    { Metric: 'Max', Value: outputData.value.max },
-    { Metric: 'Noise', Value: outputData.value.noise },
-    { Metric: 'Amplitude', Value: outputData.value.amplitude },
-    { Metric: 'Frequency', Value: outputData.value.frequency },
-    { Metric: 'Phase', Value: outputData.value.phase }
-  ]);
-
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, waveSheet, 'Waves');
-  XLSX.utils.book_append_sheet(workbook, outputSheet, 'Output');
-
   XLSX.writeFile(workbook, 'WaveData.xlsx');
 }
 

@@ -70,7 +70,7 @@ export default defineComponent({
                 },
                 title: {
                     display: true,
-                    text: 'Wave Data',
+                    text: 'Diagram',
                 },
                 tooltip: {
                     enabled: true,
