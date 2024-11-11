@@ -4,28 +4,28 @@
       <div class="min-h-screen w-full relative bg-base-200 text-base-content">
         <div class="py-2 px-4 bg-base-100 w-full flex items-center justify-between">
           <div class="w-full">
-            <h2>Love Bird</h2>
           </div>
           <div class="flex items-center gap-3">
-            <button class="btn btn-base-300" @click="$router.push({name: 'Home'})">Home</button>
-            <button class="btn btn-base-300" @click="$router.push({name: 'Scheduling'})">Scheduling</button>
+            <button class="btn btn-base-300" @click="$router.push({name: 'Home'})">Monitoring</button>
+            <button class="btn btn-base-300" @click="$router.push({name: 'Controlling'})">Controlling</button>
           </div>
         </div>
         <div class="grid grid-cols-4 min-h-[88vh] items-center justify-items-center">
           <div class="col-span-4 md:col-span-2 p-4 text-left w-full space-y-2">
-            <img src="/public/banner.png" class="w-full shadow-xl rounded-3xl" alt="">
             <card-view-vue header="Data Table">
               <div class="flex items-center gap-3 mb-6">
                 <button class="btn btn-primary" @click="exportToExcel()">Export Excel</button>
                 <button class="btn btn-error" @click="deleteAll()">Delete All</button>
               </div>
-              <div class="w-full max-h-[60vh] h-[20vh] overflow-auto">
+              <div class="w-full max-h-[60vh] h-[33vh] overflow-auto">
                 <table class="table table-sm">
                   <thead>
                     <tr>
                       <th></th>
-                      <th>Load Cell</th>
-                      <th>Water Level</th>
+                      <th>Ultrasonic 1</th>
+                      <th>Ultrasonic 2</th>
+                      <th>Ultrasonic 3</th>
+                      <th>Ultrasonic 4</th>
                       <th>Timestamp</th>
                       <th>Action</th>
                     </tr>
@@ -33,8 +33,10 @@
                   <tbody>
                     <tr v-for="(item, index) in tableData" :key="index">
                       <th>{{ index + 1 }}</th>
-                      <td>{{ item.loadcell }} gram</td>
-                      <td>{{ item.water_level }} mm</td>
+                      <td>{{ item.ultrasonic1 }} cm</td>
+                      <td>{{ item.ultrasonic2 }} cm</td>
+                      <td>{{ item.ultrasonic3 }} cm</td>
+                      <td>{{ item.ultrasonic4 }} cm</td>
                       <td>{{ item.timestamp }}</td>
                       <td>
                         <button @click="deleteByKey(item.key)" class="btn btn-error btn-sm">Delete</button>
@@ -85,49 +87,61 @@ const tableData: Ref<any> = ref([])
 
 onMounted(() => {
   fetchDataFromFirebase();
-  document.documentElement.setAttribute('data-theme', 'light')
+  document.documentElement.setAttribute('data-theme', 'pastel')
 });
-
 
 async function fetchDataFromFirebase() {
   try {
-    const snapshot = await get(firebaseRef(database, 'love_bird/data'));
+    const snapshot = await get(firebaseRef(database, 'ultrasonic_leg/data'));
     if (snapshot.exists()) {
       const data = snapshot.val();
       tableData.value = Object.entries(data).map(([key, value]: any) => ({
         key,
-        loadcell: value.load_cell,
+        ultrasonic1: value.ultrasonics[0],
+        ultrasonic2: value.ultrasonics[1],
+        ultrasonic3: value.ultrasonics[2],
+        ultrasonic4: value.ultrasonics[3],
         timestamp: value.timestamp,
-        water_level: value.water_level
       }));
-
-      const loadCells = [];
-      const waterLevels = [];
+      console.log(tableData.value)
+      const ultrasonic1 = [];
+      const ultrasonic2 = [];
+      const ultrasonic3 = [];
+      const ultrasonic4 = [];
 
       for (const key in data) {
         const entry = data[key];
         const [datePart, timePart] = entry.timestamp.split(" ");
         const [day, month, year] = datePart.split("/");
         const formattedDate = `${year}-${month}-${day}T${timePart}:00`;
-
+        console.log(entry)
         const date = new Date(formattedDate);
         if (!isNaN(date.getTime())) {
-            loadCells.push({
-                value: entry.load_cell,
-                date: formattedDate
-            });
-
-            waterLevels.push({
-                value: entry.water_level,
-                date: formattedDate
-            });
+          ultrasonic1.push({
+              value: entry.ultrasonics[0],
+              date: formattedDate
+          });
+          ultrasonic2.push({
+              value: entry.ultrasonics[1],
+              date: formattedDate
+          });
+          ultrasonic3.push({
+              value: entry.ultrasonics[2],
+              date: formattedDate
+          });
+          ultrasonic4.push({
+              value: entry.ultrasonics[3],
+              date: formattedDate
+          });
         } else {
             console.error("Invalid date:", entry.timestamp);
         }
       }
 
-      waves.value[0].data = loadCells;
-      waves.value[1].data = waterLevels;
+      waves.value[0].data = ultrasonic1;
+      waves.value[1].data = ultrasonic2;
+      waves.value[2].data = ultrasonic3;
+      waves.value[3].data = ultrasonic4;
     } else {
       console.log("No data available");
     }
@@ -137,8 +151,10 @@ async function fetchDataFromFirebase() {
 }
 
 const waves = ref([
-  { name: 'Load Cell', data: [] as { value: number; date: string }[] },
-  { name: 'Water Level', data: [] as { value: number; date: string }[] },
+  { name: 'Ultrasonic 1', data: [] as { value: number; date: string }[] },
+  { name: 'Ultrasonic 2', data: [] as { value: number; date: string }[] },
+  { name: 'Ultrasonic 3', data: [] as { value: number; date: string }[] },
+  { name: 'Ultrasonic 4', data: [] as { value: number; date: string }[] },
 ]);
 
 
