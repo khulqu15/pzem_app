@@ -12,6 +12,25 @@
         </div>
         <div class="grid grid-cols-4 min-h-[88vh] items-center justify-items-center">
           <div class="col-span-4 md:col-span-2 p-4 text-left w-full space-y-2">
+            <card-view-vue header="User Information">
+              <div class="grid w-full grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <label for="name_input">Name</label>
+                  <input v-model="user_name" type="text" id="name" placeholder="Name" class="input input-bordered w-full" />
+                </div>
+                <div>
+                  <label for="address_input">Address</label>
+                  <input v-model="user_address" type="text" id="address" placeholder="Address" class="input input-bordered w-full" />
+                </div>
+                <div>
+                  <label for="age_input">Age</label>
+                  <input v-model="user_age" type="number" id="age" placeholder="Age" class="input input-bordered w-full" />
+                </div>
+              </div>
+              <div class="w-full flex justify-items-end justify-end">
+                <button class="btn btn-primary mt-3" @click="onsubmitUser()">Save</button>
+              </div>
+            </card-view-vue>
             <card-view-vue header="Data Table">
               <div class="flex items-center gap-3 mb-6">
                 <button class="btn btn-primary" @click="exportToExcel()">Export Excel</button>
@@ -26,6 +45,7 @@
                       <th>Ultrasonic 2</th>
                       <th>Ultrasonic 3</th>
                       <th>Ultrasonic 4</th>
+                      <th>Classified</th>
                       <th>Timestamp</th>
                       <th>Action</th>
                     </tr>
@@ -37,6 +57,7 @@
                       <td>{{ item.ultrasonic2 }} cm</td>
                       <td>{{ item.ultrasonic3 }} cm</td>
                       <td>{{ item.ultrasonic4 }} cm</td>
+                      <td>{{ item.classified }}</td>
                       <td>{{ item.timestamp }}</td>
                       <td>
                         <button @click="deleteByKey(item.key)" class="btn btn-error btn-sm">Delete</button>
@@ -74,21 +95,43 @@
 </template>
 
 <script setup lang="ts">
-import CardViewVue from '@/components/CardView.vue';
 import { IonContent, IonPage } from '@ionic/vue';
 import { ref, Ref, onMounted } from 'vue';
 import { database, ref as firebaseRef, get } from '@/firebaseConfig';
 import { remove, child } from 'firebase/database';
+import CardViewVue from '@/components/CardView.vue';
 import WavesChartVue from '@/components/WavesChart.vue';
 import * as XLSX from 'xlsx'
 
 const selectedWave: Ref<any> = ref(-1);
 const tableData: Ref<any> = ref([])
 
+const user_name: Ref<String|null> = ref(null)
+const user_address: Ref<String|null> = ref(null)
+const user_age: Ref<String|null> = ref(null)
+
 onMounted(() => {
   fetchDataFromFirebase();
   document.documentElement.setAttribute('data-theme', 'pastel')
+  const localUser = JSON.parse(sessionStorage.getItem('user') as string)
+  if(localUser) {
+    user_name.value = localUser.displayName
+  }
+  const assignedUser = JSON.parse(sessionStorage.getItem('a_user') as string)
+  if(assignedUser) {
+    user_name.value = assignedUser.name
+    user_address.value = assignedUser.address
+    user_age.value = assignedUser.age
+  }
 });
+
+function onsubmitUser() {
+  sessionStorage.setItem('a_user', JSON.stringify({
+    "name": user_name.value,
+    "address": user_address.value,
+    "age": user_age.value,
+  }))
+}
 
 async function fetchDataFromFirebase() {
   try {
@@ -102,6 +145,7 @@ async function fetchDataFromFirebase() {
         ultrasonic3: value.ultrasonics[2],
         ultrasonic4: value.ultrasonics[3],
         timestamp: value.timestamp,
+        classified: value.classified
       }));
       console.log(tableData.value)
       const ultrasonic1 = [];
@@ -144,7 +188,7 @@ async function fetchDataFromFirebase() {
       waves.value[3].data = ultrasonic4;
     } else {
       console.log("No data available");
-    }
+    }   
   } catch (error) {
     console.error("Error fetching data from Firebase:", error);
   }
