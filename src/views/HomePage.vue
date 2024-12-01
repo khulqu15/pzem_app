@@ -19,8 +19,11 @@
                   <input v-model="user_name" type="text" id="name" placeholder="Name" class="input input-bordered w-full" />
                 </div>
                 <div>
-                  <label for="address_input">Address</label>
-                  <input v-model="user_address" type="text" id="address" placeholder="Address" class="input input-bordered w-full" />
+                  <label for="gender_input">Jenis Kelamin</label>
+                  <select v-model="user_gender" type="text" id="gender" placeholder="gender" class="input input-bordered w-full">
+                    <option value="L">Laki laki</option>
+                    <option value="P">Perempuan</option>
+                  </select>
                 </div>
                 <div>
                   <label for="age_input">Age</label>
@@ -107,7 +110,7 @@ const selectedWave: Ref<any> = ref(-1);
 const tableData: Ref<any> = ref([])
 
 const user_name: Ref<String|null> = ref(null)
-const user_address: Ref<String|null> = ref(null)
+const user_gender: Ref<String|null> = ref(null)
 const user_age: Ref<String|null> = ref(null)
 
 onMounted(() => {
@@ -120,7 +123,7 @@ onMounted(() => {
   const assignedUser = JSON.parse(sessionStorage.getItem('a_user') as string)
   if(assignedUser) {
     user_name.value = assignedUser.name
-    user_address.value = assignedUser.address
+    user_gender.value = assignedUser.gender == null && assignedUser.gender == undefined && assignedUser.gender != "L" && assignedUser.gender != "P" ? "L" : assignedUser.gender
     user_age.value = assignedUser.age
   }
 });
@@ -128,7 +131,7 @@ onMounted(() => {
 function onsubmitUser() {
   sessionStorage.setItem('a_user', JSON.stringify({
     "name": user_name.value,
-    "address": user_address.value,
+    "gender": user_gender.value,
     "age": user_age.value,
   }))
 }
