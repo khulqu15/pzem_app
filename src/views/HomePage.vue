@@ -44,13 +44,15 @@
                   <thead>
                     <tr>
                       <th></th>
-                      <th>Ultrasonic 1</th>
-                      <th>Ultrasonic 2</th>
-                      <th>Ultrasonic 3</th>
-                      <th>Ultrasonic 4</th>
-                      <th>Classified</th>
-                      <th>Timestamp</th>
-                      <th>Action</th>
+                      <th>Ultrasonik 1 (Lutut Kiri)</th>
+                      <th>Ultrasonik 2 (Lutut Kanan)</th>
+                      <th>Ultrasonik 3 (Pergelangan Kiri)</th>
+                      <th>Ultrasonik 4 (Pergelangan Kanan)</th>
+                      <th>Jarak Antar Lutut</th>
+                      <th>Jarak Antar Pergelangan</th>
+                      <th>Klasifikasi</th>
+                      <th>Waktu</th>
+                      <th>Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -60,6 +62,8 @@
                       <td>{{ item.ultrasonic2 }} cm</td>
                       <td>{{ item.ultrasonic3 }} cm</td>
                       <td>{{ item.ultrasonic4 }} cm</td>
+                      <td>{{ item.ultrasonic5 }} cm</td>
+                      <td>{{ item.ultrasonic6 }} cm</td>
                       <td>{{ item.classified }}</td>
                       <td>{{ item.timestamp }}</td>
                       <td>
@@ -147,6 +151,8 @@ async function fetchDataFromFirebase() {
         ultrasonic2: value.ultrasonics[1],
         ultrasonic3: value.ultrasonics[2],
         ultrasonic4: value.ultrasonics[3],
+        ultrasonic5: value.ultrasonics[4],
+        ultrasonic6: value.ultrasonics[5],
         timestamp: value.timestamp,
         classified: value.classified
       }));
