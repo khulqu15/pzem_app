@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
-import { getDatabase, ref, get, update } from "firebase/database";
+import { getDatabase, ref, get, update, remove } from "firebase/database";
 import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -19,4 +19,4 @@ const analytics = getAnalytics(app);
 const database = getDatabase(app);
 const auth = getAuth(app);
 
-export { database, ref, get, update, auth};
+export { database, ref, get, update, auth, remove};

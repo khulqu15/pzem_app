@@ -2,39 +2,9 @@
   <ion-page>
     <ion-content :fullscreen="true">
       <div class="min-h-screen w-full relative bg-base-200 text-base-content">
-        <div class="py-2 px-4 bg-base-100 w-full flex items-center justify-between">
-          <div class="w-full">
-          </div>
-          <div class="flex items-center gap-3">
-            <button class="btn btn-base-300" @click="$router.push({name: 'Home'})">Monitoring</button>
-            <button class="btn btn-base-300" @click="$router.push({name: 'Controlling'})">Controlling</button>
-          </div>
-        </div>
         <div class="grid grid-cols-4 min-h-[88vh] items-center justify-items-center">
           <div class="col-span-4 md:col-span-2 p-4 text-left w-full space-y-2">
-            <card-view-vue header="User Information">
-              <div class="grid w-full grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
-                  <label for="name_input">Name</label>
-                  <input v-model="user_name" type="text" id="name" placeholder="Name" class="input input-bordered w-full" />
-                </div>
-                <div>
-                  <label for="gender_input">Jenis Kelamin</label>
-                  <select v-model="user_gender" type="text" id="gender" placeholder="gender" class="input input-bordered w-full">
-                    <option value="L">Laki laki</option>
-                    <option value="P">Perempuan</option>
-                  </select>
-                </div>
-                <div>
-                  <label for="age_input">Age</label>
-                  <input v-model="user_age" type="number" id="age" placeholder="Age" class="input input-bordered w-full" />
-                </div>
-              </div>
-              <div class="w-full flex justify-items-end justify-end">
-                <button class="btn btn-primary mt-3" @click="onsubmitUser()">Save</button>
-              </div>
-            </card-view-vue>
-            <card-view-vue header="Data Table">
+            <card-view-vue header="PZEM Data Table">
               <div class="flex items-center gap-3 mb-6">
                 <button class="btn btn-primary" @click="exportToExcel()">Export Excel</button>
                 <button class="btn btn-error" @click="deleteAll()">Delete All</button>
@@ -44,27 +14,21 @@
                   <thead>
                     <tr>
                       <th></th>
-                      <th>Ultrasonik 1 (Lutut Kiri)</th>
-                      <th>Ultrasonik 2 (Lutut Kanan)</th>
-                      <th>Ultrasonik 3 (Pergelangan Kiri)</th>
-                      <th>Ultrasonik 4 (Pergelangan Kanan)</th>
-                      <th>Jarak Antar Lutut</th>
-                      <th>Jarak Antar Pergelangan</th>
-                      <th>Klasifikasi</th>
-                      <th>Waktu</th>
-                      <th>Aksi</th>
+                      <th>Voltage (V)</th>
+                      <th>Current (A)</th>
+                      <th>Power (W)</th>
+                      <th>Energy (kWh)</th>
+                      <th>Timestamp</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr v-for="(item, index) in tableData" :key="index">
                       <th>{{ index + 1 }}</th>
-                      <td>{{ item.ultrasonic1 }} cm</td>
-                      <td>{{ item.ultrasonic2 }} cm</td>
-                      <td>{{ item.ultrasonic3 }} cm</td>
-                      <td>{{ item.ultrasonic4 }} cm</td>
-                      <td>{{ item.ultrasonic5 }} cm</td>
-                      <td>{{ item.ultrasonic6 }} cm</td>
-                      <td>{{ item.classified }}</td>
+                      <td>{{ item.voltage }}</td>
+                      <td>{{ item.current }}</td>
+                      <td>{{ item.power }}</td>
+                      <td>{{ item.energy }}</td>
                       <td>{{ item.timestamp }}</td>
                       <td>
                         <button @click="deleteByKey(item.key)" class="btn btn-error btn-sm">Delete</button>
@@ -77,143 +41,82 @@
           </div>
 
           <div class="col-span-4 md:col-span-2 p-4 text-left w-full space-y-2">
-            <div v-if="waves.length > 0">
-              <card-view-vue header="Chart Plotting">
-                <div v-if="selectedWave == -1">
-                  <waves-chart-vue 
-                    :wave-data="waves.map(wave => wave.data)" 
-                    :wave-names="waves.map(wave => wave.name)" 
-                  />
-                </div>
-                <div v-else>
-                  <waves-chart-vue 
-                    :wave-data="[waves[selectedWave].data]" 
-                    :wave-names="[waves[selectedWave].name]" 
-                  />
-                </div>
-              </card-view-vue>
-            </div>
+            <card-view-vue header="PZEM Data Chart">
+              <waves-chart-vue 
+                :wave-data="[voltageData, currentData, powerData, energyData]" 
+                :wave-names="['Voltage', 'Current', 'Power', 'Energy']" 
+              />
+            </card-view-vue>
           </div>
-
         </div>
       </div>
     </ion-content>
   </ion-page>
 </template>
 
+
 <script setup lang="ts">
 import { IonContent, IonPage } from '@ionic/vue';
-import { ref, Ref, onMounted } from 'vue';
-import { database, ref as firebaseRef, get } from '@/firebaseConfig';
-import { remove, child } from 'firebase/database';
+import { ref, onMounted } from 'vue';
+import { database, ref as firebaseRef, get, remove } from '@/firebaseConfig';
 import CardViewVue from '@/components/CardView.vue';
 import WavesChartVue from '@/components/WavesChart.vue';
-import * as XLSX from 'xlsx'
+import * as XLSX from 'xlsx';
 
-const selectedWave: Ref<any> = ref(-1);
-const tableData: Ref<any> = ref([])
-
-const user_name: Ref<String|null> = ref(null)
-const user_gender: Ref<String|null> = ref(null)
-const user_age: Ref<String|null> = ref(null)
+const tableData : any = ref([]);
+const voltageData : any = ref([]);
+const currentData : any = ref([]);
+const powerData : any = ref([]);
+const energyData : any = ref([]);
 
 onMounted(() => {
-  fetchDataFromFirebase();
-  document.documentElement.setAttribute('data-theme', 'pastel')
-  const localUser = JSON.parse(sessionStorage.getItem('user') as string)
-  if(localUser) {
-    user_name.value = localUser.displayName
-  }
-  const assignedUser = JSON.parse(sessionStorage.getItem('a_user') as string)
-  if(assignedUser) {
-    user_name.value = assignedUser.name
-    user_gender.value = assignedUser.gender == null && assignedUser.gender == undefined && assignedUser.gender != "L" && assignedUser.gender != "P" ? "L" : assignedUser.gender
-    user_age.value = assignedUser.age
-  }
+  fetchPzemData();
+  document.documentElement.setAttribute('data-theme', 'light');
 });
 
-function onsubmitUser() {
-  sessionStorage.setItem('a_user', JSON.stringify({
-    "name": user_name.value,
-    "gender": user_gender.value,
-    "age": user_age.value,
-  }))
-}
-
-async function fetchDataFromFirebase() {
+async function fetchPzemData() {
   try {
-    const snapshot = await get(firebaseRef(database, 'ultrasonic_leg/data'));
+    const snapshot = await get(firebaseRef(database, 'yunia_pzem/'));
     if (snapshot.exists()) {
       const data = snapshot.val();
       tableData.value = Object.entries(data).map(([key, value]: any) => ({
         key,
-        ultrasonic1: value.ultrasonics[0],
-        ultrasonic2: value.ultrasonics[1],
-        ultrasonic3: value.ultrasonics[2],
-        ultrasonic4: value.ultrasonics[3],
-        ultrasonic5: value.ultrasonics[4],
-        ultrasonic6: value.ultrasonics[5],
+        voltage: value.voltage,
+        current: value.current,
+        power: value.power,
+        energy: value.energy,
         timestamp: value.timestamp,
-        classified: value.classified
       }));
-      console.log(tableData.value)
-      const ultrasonic1 = [];
-      const ultrasonic2 = [];
-      const ultrasonic3 = [];
-      const ultrasonic4 = [];
 
-      for (const key in data) {
-        const entry = data[key];
-        const [datePart, timePart] = entry.timestamp.split(" ");
-        const [day, month, year] = datePart.split("/");
-        const formattedDate = `${year}-${month}-${day}T${timePart}:00`;
-        console.log(entry)
-        const date = new Date(formattedDate);
-        if (!isNaN(date.getTime())) {
-          ultrasonic1.push({
-              value: entry.ultrasonics[0],
-              date: formattedDate
-          });
-          ultrasonic2.push({
-              value: entry.ultrasonics[1],
-              date: formattedDate
-          });
-          ultrasonic3.push({
-              value: entry.ultrasonics[2],
-              date: formattedDate
-          });
-          ultrasonic4.push({
-              value: entry.ultrasonics[3],
-              date: formattedDate
-          });
-        } else {
-            console.error("Invalid date:", entry.timestamp);
-        }
-      }
+      voltageData.value = tableData.value.map((entry: any) => ({
+        value: entry.voltage,
+        date: entry.timestamp,
+      }));
+      currentData.value = tableData.value.map((entry: any) => ({
+        value: entry.current,
+        date: entry.timestamp,
+      }));
+      powerData.value = tableData.value.map((entry: any) => ({
+        value: entry.power,
+        date: entry.timestamp,
+      }));
+      energyData.value = tableData.value.map((entry: any) => ({
+        value: entry.energy,
+        date: entry.timestamp,
+      }));
 
-      waves.value[0].data = ultrasonic1;
-      waves.value[1].data = ultrasonic2;
-      waves.value[2].data = ultrasonic3;
-      waves.value[3].data = ultrasonic4;
+      console.log('PZEM data loaded:', tableData.value);
     } else {
       console.log("No data available");
-    }   
+    }
   } catch (error) {
     console.error("Error fetching data from Firebase:", error);
   }
 }
 
-const waves = ref([
-  { name: 'Ultrasonic 1', data: [] as { value: number; date: string }[] },
-  { name: 'Ultrasonic 2', data: [] as { value: number; date: string }[] },
-  { name: 'Ultrasonic 3', data: [] as { value: number; date: string }[] },
-  { name: 'Ultrasonic 4', data: [] as { value: number; date: string }[] },
-]);
-
-
 async function deleteByKey(key: string) {
   try {
-    await remove(firebaseRef(database, `love_bird/data/${key}`));
+    await remove(firebaseRef(database, `pzem_zigbee/data/${key}`));
     tableData.value = tableData.value.filter((item: any) => item.key !== key);
     console.log(`Entry with key ${key} deleted successfully`);
   } catch (error) {
@@ -223,7 +126,7 @@ async function deleteByKey(key: string) {
 
 async function deleteAll() {
   try {
-    await remove(firebaseRef(database, 'love_bird/data'));
+    await remove(firebaseRef(database, 'pzem_zigbee/data'));
     tableData.value = [];
     console.log("All entries deleted successfully");
   } catch (error) {
@@ -232,28 +135,19 @@ async function deleteAll() {
 }
 
 function exportToExcel() {
-  const waveData = waves.value.map(wave => {
-    return {
-      name: wave.name,
-      data: wave.data.map(point => ({
-        value: point.value,
-        date: point.date
-      }))
-    };
-  });
-
-  const waveSheet = XLSX.utils.json_to_sheet(
-    waveData.flatMap(wave => wave.data.map((point, index) => ({
-      Name: wave.name,
-      Value: point.value,
-      Date: point.date,
-      Index: index + 1
-    })))
+  const pzemSheet = XLSX.utils.json_to_sheet(
+    tableData.value.map((entry: any, index: any) => ({
+      Index: index + 1,
+      Voltage: entry.voltage,
+      Current: entry.current,
+      Power: entry.power,
+      Energy: entry.energy,
+      Timestamp: entry.timestamp,
+    }))
   );
 
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, waveSheet, 'Waves');
-  XLSX.writeFile(workbook, 'WaveData.xlsx');
+  XLSX.utils.book_append_sheet(workbook, pzemSheet, 'PZEM Data');
+  XLSX.writeFile(workbook, 'PzemData.xlsx');
 }
-
 </script>
