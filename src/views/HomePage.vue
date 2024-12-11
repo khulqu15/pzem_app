@@ -62,6 +62,7 @@ import { database, ref as firebaseRef, get, remove } from '@/firebaseConfig';
 import CardViewVue from '@/components/CardView.vue';
 import WavesChartVue from '@/components/WavesChart.vue';
 import * as XLSX from 'xlsx';
+import { onValue } from 'firebase/database';
 
 const tableData : any = ref([]);
 const voltageData : any = ref([]);
@@ -74,9 +75,10 @@ onMounted(() => {
   document.documentElement.setAttribute('data-theme', 'light');
 });
 
-async function fetchPzemData() {
-  try {
-    const snapshot = await get(firebaseRef(database, 'yunia_pzem/'));
+function fetchPzemData() {
+  const dataRef = firebaseRef(database, 'yunia_pzem/');
+
+  onValue(dataRef, (snapshot) => {
     if (snapshot.exists()) {
       const data = snapshot.val();
       tableData.value = Object.entries(data).map(([key, value]: any) => ({
@@ -105,13 +107,13 @@ async function fetchPzemData() {
         date: entry.timestamp,
       }));
 
-      console.log('PZEM data loaded:', tableData.value);
+      console.log('PZEM data updated:', tableData.value);
     } else {
       console.log("No data available");
     }
-  } catch (error) {
+  }, (error) => {
     console.error("Error fetching data from Firebase:", error);
-  }
+  });
 }
 
 async function deleteByKey(key: string) {
