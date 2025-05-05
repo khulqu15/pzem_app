@@ -5,7 +5,7 @@
         <div class="fixed top-0 left-0 w-full bg-base-100 p-6 z-[999]">
           <div class="w-full flex items-center justify-between">
             <div>
-              <h1 class="flex items-center gap-4 text-lg font-bold text-blue-600"><Icon icon="mynaui:building-solid" width="32" height="32" /> HAYAKOST</h1>
+              <h1 class="flex items-center gap-4 text-lg font-bold text-blue-600"><Icon icon="mynaui:building-solid" width="32" height="32" /></h1>
             </div>
             <div class="flex items-center gap-3">
               <button class="btn" @click="tab = 'ownerData'" :class="{'bg-blue-600 text-white hover:bg-blue-700': tab == 'ownerData', 'hover:bg-blue-600 hover:text-white btn-ghost': tab != 'ownerData'}">Owner</button>
@@ -14,52 +14,56 @@
             </div>
           </div>
         </div>
-        <div v-if="tab == 'historyData'" class="grid grid-cols-4 min-h-[88vh] items-center justify-items-center">
-          <div class="col-span-4 md:col-span-2 p-4 text-left w-full space-y-2">
-            <card-view-vue header="PZEM Data Table">
-              <div class="flex items-center gap-3 mb-6">
-                <button class="btn btn-primary" @click="exportToExcel()">Export Excel</button>
-                <button class="btn btn-error" @click="deleteAll()">Delete All</button>
-              </div>
-              <div class="w-full max-h-[60vh] h-[33vh] overflow-auto">
-                <table class="table table-sm">
-                  <thead>
-                    <tr>
-                      <th></th>
-                      <th>Voltage (V)</th>
-                      <th>Current (A)</th>
-                      <th>Power (W)</th>
-                      <th>Energy (kWh)</th>
-                      <th>Timestamp</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="(item, index) in tableData" :key="index">
-                      <th>{{ index + 1 }}</th>
-                      <td>{{ item.voltage }}</td>
-                      <td>{{ item.current }}</td>
-                      <td>{{ item.power }}</td>
-                      <td>{{ item.energy }}</td>
-                      <td>{{ item.timestamp }}</td>
-                      <td>
-                        <button @click="deleteByKey(item.key)" class="btn btn-error btn-sm">Delete</button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+        <div v-if="tab == 'historyData'">
+          <div class="mb-4 pt-32 px-8 flex items-center justify-between">
+            <div>
+              <label for="pzemSelect" class="font-semibold mr-2">Select PZEM Device:</label>
+              <select id="pzemSelect" class="select select-bordered" v-model="selectedPzemIndex">
+                <option v-for="(entry, index) in tableData" :key="index" :value="index">PZEM {{ index + 1 }}</option>
+              </select>
+            </div>
+            <div>
+              <button class="btn bg-blue-600 text-white" @click="exportToExcel()">Export CSV</button>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4 w-full">
+            <card-view-vue :header="`PZEM ${selectedPzemIndex + 1} Data Table`">
+              <table class="table table-sm">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Voltage (V)</th>
+                    <th>Current (A)</th>
+                    <th>Power (W)</th>
+                    <th>Energy (kWh)</th>
+                    <th>Timestamp</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(item, idx) in tableData[selectedPzemIndex]?.data" :key="idx">
+                    <td>{{ idx + 1 }}</td>
+                    <td>{{ item.voltage }}</td>
+                    <td>{{ item.current }}</td>
+                    <td>{{ item.power }}</td>
+                    <td>{{ item.energy }}</td>
+                    <td>{{ item.timestamp }}</td>
+                  </tr>
+                </tbody>
+              </table>
             </card-view-vue>
+            <card-view-vue :header="`PZEM ${selectedPzemIndex + 1} Chart`">
+            <waves-chart-vue
+              :wave-data="[
+                voltageData[selectedPzemIndex].values,
+                currentData[selectedPzemIndex].values,
+                powerData[selectedPzemIndex].values,
+                energyData[selectedPzemIndex].values
+              ]"
+              :wave-names="['Voltage', 'Current', 'Power', 'Energy']"
+            />
+          </card-view-vue>
           </div>
 
-          <div class="col-span-4 md:col-span-2 p-4 text-left w-full space-y-2">
-            <card-view-vue header="PZEM Data Chart">
-              <waves-chart-vue 
-                :wave-data="[voltageData, currentData, powerData, energyData]" 
-                :wave-names="['Voltage', 'Current', 'Power', 'Energy']" 
-              />
-            </card-view-vue>
-          </div>
         </div>
         <div v-if="tab != 'historyData'">
           <div class="w-full relative p-4 flex items-center pt-40 justify-center">
@@ -135,12 +139,12 @@
                     </div>
                   </div>
                 </dialog>
-                <div v-for="(item, index) in tab == 'ownerData' ? beds : beds.filter((item: any) => item.uuid == userInfo.kost)" :key="index" class="mt-4">
+                <div v-for="(item, index) in beds" :key="index" class="mt-4">
                   <div class="py-4 px-6 hover:bg-base-200 rounded-xl">
                     <div class="flex items-center justify-between">
                       <div class="div">
                         <h3 class="font-bold">{{ item.name }}</h3>
-                        <p class="text-sm">{{ item.voltage }} V, {{ item.ampere }} A, {{ item.power }} kWh</p>
+                        <p class="text-sm">{{ item.location }} kWh</p>
                       </div>
                       <div v-if="tab == 'ownerData'">
                         <div class="dropdown dropdown-end">
@@ -170,9 +174,19 @@
                         </button>
                       </div>
                     </div>
-                    <div class="bg-base-200 p-6 rounded-xl mt-4" v-if="tab == 'ownerData'">
-                      <label :for="`${index}-intensity`">Intensity {{ item.intensity }}</label>
-                      <input type="range" v-model="item.intensity" min="0" max="100" value="40" class="range range-primary" />
+                    <div class="flex mt-5 items-center justify-between gap-5" v-if="item.data">
+                      <div>
+                        <p class="text-sm text-blue-600 font-semibold">
+                          {{ getTotalEnergyAndCost(item.data).totalCost }} ({{ getTotalEnergyAndCost(item.data).totalEnergy }} kWh)
+                        </p>
+                      </div>
+                      <div>
+                        <span class="badge bg-blue-600 text-sm text-white py-3">{{ item.data[item.data.length - 1].current }} A</span>
+                        <span class="badge bg-blue-600 text-sm text-white py-3">{{ item.data[item.data.length - 1].voltage }} V</span>
+                        <span class="badge bg-blue-600 text-sm text-white py-3">{{ item.data[item.data.length - 1].power }} W</span>
+                        <span class="badge bg-blue-600 text-sm text-white py-3">{{ item.data[item.data.length - 1].energy }} kWh</span>
+                        <span class="badge bg-blue-600 text-sm text-white py-3">{{ item.data[item.data.length - 1].power_factor }}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -184,7 +198,6 @@
     </ion-content>
   </ion-page>
 </template>
-
 
 <script setup lang="ts">
 import { IonContent, IonPage } from '@ionic/vue';
@@ -211,83 +224,15 @@ const kostInfo = ref({
 const form: any = ref({
   kost: ''
 })
+const selectedPzemIndex = ref(0);
 
 const userInfo = ref({
-  name: 'Mohammad Khusnul Khuluq',
+  name: 'Yunia Putri Ariesyah',
   kost: '373ufiw3hbf.uidhiandhiabd',
-  email: 'ninno@hayago.id'
+  email: 'yunia23@gmail.id'
 })
-const beds: any = ref([
-  {
-    uuid: '373ufiw3hbf.uidhiandhiabd',
-    name: 'ROOM VIP',
-    power: 120,
-    voltage: 221,
-    ampere: 20,
-    intensity: 100,
-    lamp_active: false,
-    available: true,
-  },
-  {
-    uuid: '389hu3fb3bf.uifdadnjin',
-    name: 'ROOM A1',
-    power: 120,
-    voltage: 221,
-    ampere: 20,
-    intensity: 80,
-    lamp_active: false,
-    available: true,
-  },
-  {
-    uuid: 'jadbjaindja.aduiaibdui3',
-    name: 'ROOM A2',
-    power: 120,
-    voltage: 221,
-    ampere: 20,
-    lamp_active: false,
-    available: true,
-  },
-  {
-    uuid: 'ioehfui3489j.uiefhiwejfn',
-    name: 'ROOM A3',
-    power: 120,
-    voltage: 221,
-    ampere: 20,
-    intensity: 80,
-    lamp_active: false,
-    available: true,
-  },
-  {
-    uuid: 'aojdnfie.wifnwijfnjon',
-    name: 'ROOM B1',
-    power: 120,
-    voltage: 221,
-    ampere: 20,
-    intensity: 70,
-    lamp_active: false,
-    available: false,
-  },
-  {
-    uuid: 'ajfnowfnojqopfdm.uafhdiaw',
-    name: 'ROOM B2',
-    power: 120,
-    voltage: 221,
-    ampere: 20,
-    intensity: 70,
-    lamp_active: false,
-    available: false,
-  },
-  {
-    uuid: 'ajjfnjiaf.fauifbiejn',
-    name: 'ROOM B3',
-    power: 120,
-    voltage: 221,
-    ampere: 20,
-    intensity: 70,
-    lamp_active: false,
-    available: true,
-  },
-])
+const beds: any = ref([])
+
 onMounted(() => {
   form.value.kost = userInfo.value.kost
   fetchPzemData();
@@ -295,38 +240,44 @@ onMounted(() => {
 });
 
 function fetchPzemData() {
-  const dataRef = firebaseRef(database, 'yunia_pzem/');
+  const dataRef = firebaseRef(database, 'pzem/');
 
   onValue(dataRef, (snapshot) => {
     if (snapshot.exists()) {
       const data = snapshot.val();
-      tableData.value = Object.entries(data).map(([key, value]: any) => ({
-        key,
-        voltage: value.voltage,
-        current: value.current,
-        power: value.power,
-        energy: value.energy,
-        timestamp: value.timestamp,
-      }));
+      beds.value = data.pzem
+      kostInfo.value.name = data.name
+      kostInfo.value.address = data.location
 
-      voltageData.value = tableData.value.map((entry: any) => ({
-        value: entry.voltage,
-        date: entry.timestamp,
-      }));
-      currentData.value = tableData.value.map((entry: any) => ({
-        value: entry.current,
-        date: entry.timestamp,
-      }));
-      powerData.value = tableData.value.map((entry: any) => ({
-        value: entry.power,
-        date: entry.timestamp,
-      }));
-      energyData.value = tableData.value.map((entry: any) => ({
-        value: entry.energy,
-        date: entry.timestamp,
-      }));
+      tableData.value = [];
+      voltageData.value = [];
+      currentData.value = [];
+      powerData.value = [];
+      energyData.value = [];
 
-      console.log('PZEM data updated:', tableData.value);
+      data.pzem.forEach((pzemEntry: any, index: number) => {
+        const key = `PZEM ${index + 1}`;
+        const deviceData = pzemEntry.data;
+
+        tableData.value.push({ key, data: deviceData });
+
+        voltageData.value.push({
+          name: key,
+          values: deviceData.map((entry: any) => ({ value: entry.voltage, date: entry.timestamp }))
+        });
+        currentData.value.push({
+          name: key,
+          values: deviceData.map((entry: any) => ({ value: entry.current, date: entry.timestamp }))
+        });
+        powerData.value.push({
+          name: key,
+          values: deviceData.map((entry: any) => ({ value: entry.power, date: entry.timestamp }))
+        });
+        energyData.value.push({
+          name: key,
+          values: deviceData.map((entry: any) => ({ value: entry.energy, date: entry.timestamp }))
+        });
+      });
     } else {
       console.log("No data available");
     }
@@ -345,6 +296,17 @@ async function deleteByKey(key: string) {
   }
 }
 
+function getTotalEnergyAndCost(data: any[]) {
+  const ratePerKWh = 500;
+  const totalEnergy = data.reduce((sum, entry) => sum + (entry.energy || 0), 0);
+  const totalCost = totalEnergy * ratePerKWh;
+
+  return {
+    totalEnergy: totalEnergy.toFixed(2),
+    totalCost: `Rp ${totalCost.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`
+  };
+}
+
 async function deleteAll() {
   try {
     await remove(firebaseRef(database, 'pzem_zigbee/data'));
@@ -356,8 +318,10 @@ async function deleteAll() {
 }
 
 function exportToExcel() {
+  const selectedData = tableData.value[selectedPzemIndex.value]?.data || [];
+
   const pzemSheet = XLSX.utils.json_to_sheet(
-    tableData.value.map((entry: any, index: any) => ({
+    selectedData.map((entry: any, index: number) => ({
       Index: index + 1,
       Voltage: entry.voltage,
       Current: entry.current,
@@ -368,7 +332,9 @@ function exportToExcel() {
   );
 
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, pzemSheet, 'PZEM Data');
-  XLSX.writeFile(workbook, 'PzemData.xlsx');
+  const sheetName = `PZEM ${selectedPzemIndex.value + 1}`;
+  XLSX.utils.book_append_sheet(workbook, pzemSheet, sheetName);
+  XLSX.writeFile(workbook, `${sheetName} Data.xlsx`);
 }
+
 </script>
