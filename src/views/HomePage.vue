@@ -90,21 +90,7 @@
                     </div>
                   </div>
                 </div>
-                <button onclick="form_room_modal.showModal()" class="w-full bg-blue-600 text-white btn mt-6 mb-4 hover:bg-blue-700" v-if="tab == 'ownerData'">Add New</button>
-                <dialog id="change_room_modal" class="modal" v-if="tab == 'userData'">
-                  <div class="modal-box max-w-2xl">
-                    <h3 class="text-lg font-bold">Change Room</h3>
-                    <select v-model="form.kost" class="select select-bordered w-full">
-                      <option v-for="(kost, idx) in beds" :key="idx" :value="kost.uuid" :disabled="!kost.available" :selected="userInfo.kost == kost.uuid">{{ kost.name }} {{ !kost.available ? '(Unavailable)' : '' }}</option>
-                    </select>
-                    <div class="modal-action">
-                      <form method="dialog">
-                        <button class="btn">Close</button>
-                        <button @click="userInfo.kost = form.kost" class="btn ml-3 px-12 bg-blue-600 hover:bg-blue-700 text-white">Save</button>
-                      </form>
-                    </div>
-                  </div>
-                </dialog>
+                <button onclick="device_modal.showModal()" class="w-full bg-blue-600 text-white btn mt-6 mb-4 hover:bg-blue-700" v-if="tab == 'ownerData'">Add New</button>
                 <dialog id="edit_kost_modal" class="modal" v-if="tab == 'ownerData'">
                   <div class="modal-box max-w-2xl">
                     <h3 class="text-lg font-bold">Edit Kost Info</h3>
@@ -113,30 +99,37 @@
                       <input type="text" class="input input-bordered w-full" id="name_input" v-model="kostInfo.name">
                     </div>
                     <div class="mt-3">
-                      <label for="name_input">Address</label>
+                      <label for="name_input">Location</label>
                       <input type="text" class="input input-bordered w-full" id="name_input" v-model="kostInfo.address">
                     </div>
                     <div class="modal-action">
                       <form method="dialog">
                         <button class="btn">Close</button>
-                        <button @click="userInfo.kost = form.kost" class="btn ml-3 px-12 bg-blue-600 hover:bg-blue-700 text-white">Save</button>
+                        <button class="btn ml-3 px-12 bg-blue-600 hover:bg-blue-700 text-white" @click="saveDataParent">Save</button>
                       </form>
                     </div>
                   </div>
                 </dialog>
-                <dialog id="form_room_modal" class="modal" v-if="tab == 'ownerData'">
-                  <div class="modal-box max-w-2xl">
-                    <h3 class="text-lg font-bold">Form Room's Kost</h3>
-                    <div class="mt-3">
-                      <label for="name_input">Name</label>
-                      <input type="text" class="input input-bordered w-full" id="name_input" v-model="kostInfo.name">
-                    </div>
-                    <div class="modal-action">
-                      <form method="dialog">
-                        <button class="btn">Close</button>
-                        <button @click="userInfo.kost = form.kost" class="btn ml-3 px-12 bg-blue-600 hover:bg-blue-700 text-white">Save</button>
-                      </form>
-                    </div>
+                <dialog id="device_modal" class="modal">
+                  <div class="modal-box">
+                    <h3 class="text-lg font-bold">{{ isEditing ? 'Edit Device' : 'Create Device' }}</h3>
+                    <input type="text" v-model="form.name" placeholder="Device Name" class="input input-bordered w-full mt-3" />
+                    <input type="text" v-model="form.location" placeholder="Location" class="input input-bordered w-full mt-3" />
+                    <form method="dialog" class="modal-action">
+                      <button class="btn" id="close_device_modal">Close</button>
+                      <button class="btn bg-blue-600 text-white" @click="saveDataDevice($event), isEditing = false, editingIndex = null">Save</button>
+                    </form>
+                  </div>
+                </dialog>
+                <dialog id="delete_device_modal" class="modal">
+                  <div class="modal-box">
+                    <h3 class="text-lg font-bold text-red-600">Delete Device</h3>
+                    <p>Are you sure you want to delete this device?</p>
+                    <p class="font-semibold mt-2 text-gray-700">{{ form.name }} - {{ form.location }}</p>
+                    <form method="dialog">
+                      <button class="btn">Cancel</button>
+                      <button class="btn bg-red-600 text-white" @click="confirmDeleteDevice">Delete</button>
+                    </form>
                   </div>
                 </dialog>
                 <div v-for="(item, index) in beds" :key="index" class="mt-4">
@@ -152,26 +145,20 @@
                             <Icon icon="nimbus:ellipsis" width="16" height="16" />
                           </div>
                           <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-1 w-52 p-2 shadow-sm">
-                            <li><a>Edit</a></li>
-                            <li><a>Delete</a></li>
+                            <li><a onclick="device_modal.showModal()" @click="isEditing = true, editingIndex = index, form.name = item.name, form.location = item.location">Edit</a></li>
+                            <li><a onclick="delete_device_modal.showModal()" @click="editingIndex = index">Delete</a></li>
                           </ul>
                         </div>
                       </div>
                       <div v-if="tab == 'userData'" class="flex items-center gap-3">
-                        <div class="dropdown dropdown-end">
-                          <div role="button" tabindex="0" class="btn bg-base-200">
-                            <Icon icon="nimbus:ellipsis" width="16" height="16" />
-                          </div>
-                          <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-1 w-52 p-2 shadow-sm">
-                            <li><a onclick="change_room_modal.showModal()">Change Room</a></li>
-                          </ul>
-                        </div>
-                        <button class="btn" @click="item.lamp_active = !item.lamp_active" :class="{'bg-blue-600 text-white hover:bg-blue-700': item.lamp_active, 'hover:bg-blue-600 hover:text-white btn-ghost': !item.lamp_active}">
-                          <Icon v-if="item.lamp_active" icon="solar:lamp-bold" width="24" height="24" />
-                          <Icon v-if="!item.lamp_active" icon="solar:lamp-linear" width="24" height="24" />
-                          <span v-if="item.lamp_active">ON</span>
-                          <span v-if="!item.lamp_active">OFF</span>
-                        </button>
+                        <button class="btn" 
+                                @click="toggleLamp(item, index)" 
+                                :class="{'bg-blue-600 text-white hover:bg-blue-700': item.lamp_active, 'hover:bg-blue-600 hover:text-white btn-ghost': !item.lamp_active}">
+                            <Icon v-if="item.lamp_active" icon="solar:lamp-bold" width="24" height="24" />
+                            <Icon v-if="!item.lamp_active" icon="solar:lamp-linear" width="24" height="24" />
+                            <span v-if="item.lamp_active">ON</span>
+                            <span v-if="!item.lamp_active">OFF</span>
+                          </button>
                       </div>
                     </div>
                     <div class="flex mt-5 items-center justify-between gap-5" v-if="item.data">
@@ -206,9 +193,35 @@ import { database, ref as firebaseRef, get, remove } from '@/firebaseConfig';
 import CardViewVue from '@/components/CardView.vue';
 import WavesChartVue from '@/components/WavesChart.vue';
 import * as XLSX from 'xlsx';
-import { onValue } from 'firebase/database';
+import { onValue, set, update } from 'firebase/database';
 import { Icon } from "@iconify/vue";
 
+interface PzemData {
+  current: number;
+  energy: number;
+  frequency: number;
+  power: number;
+  power_factor: number;
+  timestamp: string;
+  voltage: number;
+}
+
+interface EndDevice {
+  name: string;
+  location: string;
+  data: PzemData[];
+}
+
+interface KostData {
+  name: string;
+  location: string;
+  pzem: EndDevice[];
+}
+
+const devices = ref<EndDevice[]>([]);
+const form = ref<EndDevice>({ name: '', location: '', data: []});
+const isEditing = ref(false);
+let editingIndex = ref<number | null>(null);
 const tableData : any = ref([]);
 const voltageData : any = ref([]);
 const currentData : any = ref([]);
@@ -221,9 +234,176 @@ const kostInfo = ref({
   address: 'Bangil, Pasuruan, Jawatimur',
 })
 
-const form: any = ref({
-  kost: ''
-})
+const pzemData: KostData = {
+  name: "Kost Surabaya",
+  location: "Mulyosari Surabaya",
+  pzem: [
+    {
+      name: "End Device 1",
+      location: "Kamar 1",
+      data: [
+        {
+          current: 1.13,
+          energy: 1.58,
+          frequency: 49.98,
+          power: 146.84,
+          power_factor: 0.91,
+          timestamp: "2025-05-06 20:05",
+          voltage: 219.81,
+        },
+        {
+          current: 1.56,
+          energy: 1.42,
+          frequency: 50.27,
+          power: 233.01,
+          power_factor: 0.92,
+          timestamp: "2025-05-06 20:10",
+          voltage: 222.98,
+        },
+      ],
+    },
+    {
+      name: "End Device 2",
+      location: "Kamar 2",
+      data: [
+        {
+          current: 1.61,
+          energy: 1.86,
+          frequency: 50.21,
+          power: 373.29,
+          power_factor: 0.94,
+          timestamp: "2025-05-06 20:05",
+          voltage: 220.37,
+        },
+        {
+          current: 0.98,
+          energy: 1.63,
+          frequency: 50.05,
+          power: 311.83,
+          power_factor: 0.75,
+          timestamp: "2025-05-06 20:10",
+          voltage: 224.82,
+        },
+      ],
+    },
+    {
+      name: "End Device 3",
+      location: "Kamar 3",
+      data: [
+        {
+          current: 1.61,
+          energy: 1.86,
+          frequency: 50.21,
+          power: 373.29,
+          power_factor: 0.94,
+          timestamp: "2025-05-06 20:05",
+          voltage: 220.37,
+        },
+        {
+          current: 0.98,
+          energy: 1.63,
+          frequency: 50.05,
+          power: 311.83,
+          power_factor: 0.75,
+          timestamp: "2025-05-06 20:10",
+          voltage: 224.82,
+        },
+      ],
+    },
+  ],
+};
+
+async function confirmDeleteDevice() {
+  if (editingIndex.value !== null) {
+    try {
+      await remove(firebaseRef(database, `/pzem/pzem/${editingIndex.value}`));
+      devices.value.splice(editingIndex.value, 1);
+      console.log(`Device at index ${editingIndex.value} deleted successfully.`);
+      fetchPzemData();
+    } catch (error) {
+      console.error("Error deleting device:", error);
+    }
+  }
+}
+
+async function saveDataDevice(event: Event) {
+  event.preventDefault();
+
+  const initialData = [
+    {
+      voltage: 0,
+      current: 0,
+      power: 0,
+      energy: 0,
+      frequency: 0,
+      power_factor: 0,
+      timestamp: new Date().toISOString()
+    }
+  ];
+
+  try {
+    if (isEditing.value && editingIndex.value !== null) {
+      devices.value[editingIndex.value] = {
+        name: form.value.name,
+        location: form.value.location,
+        data: initialData
+      };
+
+      await update(firebaseRef(database, `/pzem/pzem/${editingIndex.value}`), {
+        name: form.value.name,
+        location: form.value.location,
+        data: initialData
+      });
+      console.log("Device updated successfully.");
+    } else {
+      const newIndex = devices.value.length;
+      devices.value[newIndex] = {
+        name: form.value.name,
+        location: form.value.location,
+        data: initialData
+      };
+
+      await set(firebaseRef(database, `/pzem/pzem/${newIndex}`), {
+        name: form.value.name,
+        location: form.value.location,
+        data: initialData
+      });
+      console.log("New device created successfully.");
+    }
+
+    await fetchPzemData();
+    clearForm();
+    closeDeviceModal();
+  } catch (error) {
+    console.error("Error saving device data:", error);
+  }
+}
+
+function clearForm() {
+  form.value.name = '';
+  form.value.location = '';
+  form.value.data = [];
+  isEditing.value = false;
+  editingIndex.value = null;
+}
+
+function closeDeviceModal() {
+  const modal = document.getElementById('device_modal') as HTMLDialogElement;
+  if (modal) modal.close();
+}
+
+async function saveDataParent(event: Event) {
+  event.preventDefault();
+  try {
+    await set(firebaseRef(database, '/pzem/name'), kostInfo.value.name);
+    await set(firebaseRef(database, '/pzem/location'), kostInfo.value.address);
+    const modal = document.getElementById('edit_kost_modal') as HTMLDialogElement;
+    if (modal) modal.close();
+  } catch (error) {
+    console.error("Error saving Kost info:", error);
+  }
+}
+
 const selectedPzemIndex = ref(0);
 
 const userInfo = ref({
@@ -234,10 +414,28 @@ const userInfo = ref({
 const beds: any = ref([])
 
 onMounted(() => {
-  form.value.kost = userInfo.value.kost
   fetchPzemData();
   document.documentElement.setAttribute('data-theme', 'light');
 });
+
+async function savePzemData(data: KostData) {
+  try {
+    await set(firebaseRef(database, "/pzem/pzem"), data);
+    console.log("PZEM data saved successfully.");
+  } catch (error) {
+    console.error("Error saving PZEM data:", error);
+  }
+}
+
+async function toggleLamp(item: any, index: number) {
+  try {
+    item.lamp_active = !item.lamp_active;
+    await update(firebaseRef(database, `/pzem/pzem/${index}/lamp`), item.lamp_active);
+    fetchPzemData()
+  } catch (error) {
+    console.error("Error toggling lamp state:", error);
+  }
+}
 
 function fetchPzemData() {
   const dataRef = firebaseRef(database, 'pzem/');
@@ -254,6 +452,7 @@ function fetchPzemData() {
       currentData.value = [];
       powerData.value = [];
       energyData.value = [];
+      devices.value = data.pzem
 
       data.pzem.forEach((pzemEntry: any, index: number) => {
         const key = `PZEM ${index + 1}`;
@@ -279,6 +478,7 @@ function fetchPzemData() {
         });
       });
     } else {
+      devices.value = []
       console.log("No data available");
     }
   }, (error) => {
