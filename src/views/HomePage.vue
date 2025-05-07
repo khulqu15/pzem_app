@@ -32,6 +32,7 @@
                 <thead>
                   <tr>
                     <th>#</th>
+                    <th>Cost (Rp)</th>
                     <th>Voltage (V)</th>
                     <th>Current (A)</th>
                     <th>Power (W)</th>
@@ -42,11 +43,21 @@
                 <tbody>
                   <tr v-for="(item, idx) in tableData[selectedPzemIndex]?.data" :key="idx">
                     <td>{{ idx + 1 }}</td>
+                    <td>{{ calculateCost(item.energy) }}</td>
                     <td>{{ item.voltage }}</td>
                     <td>{{ item.current }}</td>
                     <td>{{ item.power }}</td>
                     <td>{{ item.energy }}</td>
                     <td>{{ item.timestamp }}</td>
+                  </tr>
+                  <tr>
+                    <td>-</td>
+                    <td>{{ getTotalEnergyAndCost(tableData[selectedPzemIndex]?.data).totalCost }}</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>{{ getTotalEnergyAndCost(tableData[selectedPzemIndex]?.data).totalEnergy }}</td>
+                    <td>-</td>
                   </tr>
                 </tbody>
               </table>
@@ -78,6 +89,10 @@
                       <h1 class="text-xl font-bold">{{ kostInfo.name }}</h1>
                       <p class="text-sm">{{ kostInfo.address }}</p>
                     </div>
+                  </div>
+                  <div>
+                    Total All Item
+                    <h1 class="text-xl font-bold text-blue-600">{{ getTotalCostAllPzem() }}</h1>
                   </div>
                   <div v-if="tab == 'ownerData'">
                     <div class="dropdown dropdown-end">
@@ -313,6 +328,17 @@ const pzemData: KostData = {
   ],
 };
 
+function getTotalCostAllPzem() {
+  if (!devices.value.length) return "Rp 0";
+
+  const totalCost = devices.value.reduce((total, device) => {
+    const deviceCost = device.data.reduce((sum, entry) => sum + (entry.energy || 0) * ratePerKWh, 0);
+    return total + deviceCost;
+  }, 0);
+
+  return `Rp ${totalCost.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`;
+}
+
 async function confirmDeleteDevice() {
   if (editingIndex.value !== null) {
     try {
@@ -324,6 +350,13 @@ async function confirmDeleteDevice() {
       console.error("Error deleting device:", error);
     }
   }
+}
+const ratePerKWh = 500;
+
+function calculateCost(energy: number): string {
+  if (!energy) return "Rp 0";
+  const cost = energy * ratePerKWh;
+  return `Rp ${cost.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`;
 }
 
 async function saveDataDevice(event: Event) {
@@ -497,7 +530,6 @@ async function deleteByKey(key: string) {
 }
 
 function getTotalEnergyAndCost(data: any[]) {
-  const ratePerKWh = 500;
   const totalEnergy = data.reduce((sum, entry) => sum + (entry.energy || 0), 0);
   const totalCost = totalEnergy * ratePerKWh;
 
@@ -506,7 +538,6 @@ function getTotalEnergyAndCost(data: any[]) {
     totalCost: `Rp ${totalCost.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`
   };
 }
-
 async function deleteAll() {
   try {
     await remove(firebaseRef(database, 'pzem_zigbee/data'));
