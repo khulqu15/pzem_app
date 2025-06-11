@@ -8,6 +8,8 @@
               <h1 class="flex items-center gap-4 text-lg font-bold text-blue-600"><Icon icon="mynaui:building-solid" width="32" height="32" /></h1>
             </div>
             <div class="flex items-center gap-3">
+              <button class="btn bg-blue-600 text-white opacity-10" @click="startSimulation()">P</button>
+              <button class="btn bg-blue-600 text-white opacity-10" @click="stopSimulation()">S</button>
               <button class="btn" @click="tab = 'ownerData'" :class="{'bg-blue-600 text-white hover:bg-blue-700': tab == 'ownerData', 'hover:bg-blue-600 hover:text-white btn-ghost': tab != 'ownerData'}">Owner</button>
               <button class="btn" @click="tab = 'userData'" :class="{'bg-blue-600 text-white hover:bg-blue-700': tab == 'userData', 'hover:bg-blue-600 hover:text-white btn-ghost': tab != 'userData'}">User</button>
               <button class="btn" @click="tab = 'historyData'" :class="{'bg-blue-600 text-white hover:bg-blue-700': tab == 'historyData', 'hover:bg-blue-600 hover:text-white btn-ghost': tab != 'historyData'}">History</button>
@@ -31,7 +33,9 @@
               <table class="table table-sm">
                 <thead>
                   <tr>
-                    <th>#</th>
+                    <th>
+                      #
+                    </th>
                     <th>Cost (Rp)</th>
                     <th>Voltage (V)</th>
                     <th>Current (A)</th>
@@ -168,11 +172,11 @@
                       <div v-if="tab == 'userData'" class="flex items-center gap-3">
                         <button class="btn" 
                                 @click="toggleLamp(item, index)" 
-                                :class="{'bg-blue-600 text-white hover:bg-blue-700': item.lamp_active, 'hover:bg-blue-600 hover:text-white btn-ghost': !item.lamp_active}">
-                            <Icon v-if="item.lamp_active" icon="solar:lamp-bold" width="24" height="24" />
-                            <Icon v-if="!item.lamp_active" icon="solar:lamp-linear" width="24" height="24" />
-                            <span v-if="item.lamp_active">ON</span>
-                            <span v-if="!item.lamp_active">OFF</span>
+                                :class="{'bg-blue-600 text-white hover:bg-blue-700': item.lamp, 'hover:bg-blue-600 hover:text-white btn-ghost': !item.lamp}">
+                            <Icon v-if="item.lamp" icon="solar:lamp-bold" width="24" height="24" />
+                            <Icon v-if="!item.lamp" icon="solar:lamp-linear" width="24" height="24" />
+                            <span v-if="item.lamp">ON</span>
+                            <span v-if="!item.lamp  ">OFF</span>
                           </button>
                       </div>
                     </div>
@@ -183,11 +187,11 @@
                         </p>
                       </div>
                       <div>
-                        <span class="badge bg-blue-600 text-sm text-white py-3">{{ item.data[item.data.length - 1].current }} A</span>
-                        <span class="badge bg-blue-600 text-sm text-white py-3">{{ item.data[item.data.length - 1].voltage }} V</span>
-                        <span class="badge bg-blue-600 text-sm text-white py-3">{{ item.data[item.data.length - 1].power }} W</span>
-                        <span class="badge bg-blue-600 text-sm text-white py-3">{{ item.data[item.data.length - 1].energy }} kWh</span>
-                        <span class="badge bg-blue-600 text-sm text-white py-3">{{ item.data[item.data.length - 1].power_factor }}</span>
+                        <span class="badge bg-blue-600 text-sm text-white py-3">{{ item.data[item.data.length - 1].current.toFixed(2) }} A</span>
+                        <span class="badge bg-blue-600 text-sm text-white py-3">{{ item.data[item.data.length - 1].voltage.toFixed(2) }} V</span>
+                        <span class="badge bg-blue-600 text-sm text-white py-3">{{ item.data[item.data.length - 1].power.toFixed(2) }} W</span>
+                        <span class="badge bg-blue-600 text-sm text-white py-3">{{ item.data[item.data.length - 1].energy.toFixed(2) }} kWh</span>
+                        <span class="badge bg-blue-600 text-sm text-white py-3">{{ item.data[item.data.length - 1].power_factor.toFixed(2) }}</span>
                       </div>
                     </div>
                   </div>
@@ -328,6 +332,69 @@ const pzemData: KostData = {
   ],
 };
 
+const isSimulating = ref(false);
+let simulationInterval: any;
+
+// Base Values for Stable Random Data
+const baseVoltage = 220.0;
+const baseCurrent = 1.5;
+const basePower = 330.0;
+let baseEnergy = 10.0;
+
+function startSimulation() {
+  if (isSimulating.value) return;
+  isSimulating.value = true;
+
+  simulationInterval = setInterval(() => {
+    for (let i = 0; i < 2; i++) {
+      addSimulatedData(i);
+    }
+  }, 2000);
+}
+
+
+function stopSimulation() {
+  clearInterval(simulationInterval);
+  isSimulating.value = false;
+}
+
+// Function to Add Simulated Data to Firebase
+async function addSimulatedData(deviceIndex: number) {
+  const voltage = baseVoltage + (baseVoltage * ((Math.random() * 0.1) - 0.05)); // ±5%
+  const current = baseCurrent + (baseCurrent * ((Math.random() * 0.1) - 0.05)); // ±5%
+  const power = voltage * current;
+  baseEnergy += power / 3600.0;
+
+  const newData = {
+    voltage: parseFloat(voltage.toFixed(2)),
+    current: parseFloat(current.toFixed(2)),
+    power: parseFloat(power.toFixed(2)),
+    energy: parseFloat(baseEnergy.toFixed(3)),
+    frequency: 50.0 + (Math.random() * 0.2 - 0.1), // ±0.1 Hz
+    power_factor: 0.9 + (Math.random() * 0.1 - 0.05), // 0.85 - 0.95
+    timestamp: new Date().toISOString()
+  };
+
+  try {
+    // Simulate data for /pzem/pzem/[0, 1]/data
+    const deviceDataRef = firebaseRef(database, `/pzem/pzem/${deviceIndex}/data`);
+    const snapshot = await get(deviceDataRef);
+
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      data.push(newData); // Add new data to the end
+
+      await set(deviceDataRef, data);
+    } else {
+      await set(deviceDataRef, [newData]);
+    }
+
+    console.log(`Simulated Data Added to Device ${deviceIndex}:`, newData);
+  } catch (error) {
+    console.error("Error adding simulated data:", error);
+  }
+}
+
 function getTotalCostAllPzem() {
   if (!devices.value.length) return "Rp 0";
 
@@ -462,8 +529,9 @@ async function savePzemData(data: KostData) {
 
 async function toggleLamp(item: any, index: number) {
   try {
-    item.lamp_active = !item.lamp_active;
-    await update(firebaseRef(database, `/pzem/pzem/${index}/lamp`), item.lamp_active);
+    const toggleValue = !item.lamp
+    beds.value[index].lamp = toggleValue
+    await set(firebaseRef(database, `/pzem/pzem/${index}/lamp/`), toggleValue);
     fetchPzemData()
   } catch (error) {
     console.error("Error toggling lamp state:", error);
