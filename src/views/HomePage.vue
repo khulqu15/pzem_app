@@ -55,7 +55,8 @@
           </div>
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4 w-full">
             <card-view-vue :header="`PZEM ${selectedPzemIndex + 1} Data Table`">
-              <div class="flex">
+              <div class="flex gap-3 mb-3">
+                <button class="btn btn-error text-white" @click="resetData()">Reset</button>
                 <button class="btn btn-primary" @click="isDesc = !isDesc">Sort data: {{ isDesc ? 'Terbaru' : 'Terlama' }}</button>
               </div>
               <div class="max-h-[70vh] overflow-y-auto">
@@ -229,9 +230,6 @@
                         <span class="badge">
                           {{ getLatestEntry(item.data)?.energy.toFixed(2) }} kWh
                         </span>
-                        <span class="badge">
-                          {{ getLatestEntry(item.data)?.power_factor.toFixed(2) }}
-                        </span>
                       </template>
                       <template v-else>
                         <span class="badge">-</span>
@@ -315,7 +313,14 @@ const kostInfo = ref({
 
 function getLatestEntry(data: any): PzemData | undefined {
   const entries = Object.values(data || {}) as PzemData[];
+  console.log(entries.at(-1))
   return entries.at(-1);
+}
+
+function resetData() {
+  remove(firebaseRef(database, '/pzem/pzem/0/data'))
+  remove(firebaseRef(database, '/pzem/pzem/1/data'))
+  remove(firebaseRef(database, '/pzem/pzem/2/data'))
 }
 
 const pzemData: KostData = {
