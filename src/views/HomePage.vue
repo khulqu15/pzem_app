@@ -216,23 +216,30 @@
                           {{ getTotalEnergyAndCost(item.data).totalCost }} ({{ getTotalEnergyAndCost(item.data).totalEnergy }} kWh)
                         </p>
                       </div>
-                      <div>
-                        <span class="badge bg-blue-600 text-sm text-white py-3">
-                          {{ Object.values(item.data || {}).at(-1)?.current?.toFixed(2) ?? '-' }} A
+                      <template v-if="getLatestEntry(item.data)">
+                        <span class="badge">
+                          {{ getLatestEntry(item.data)?.current.toFixed(2) }} A
                         </span>
-                        <span class="badge bg-blue-600 text-sm text-white py-3">
-                          {{ Object.values(item.data || {}).at(-1)?.voltage?.toFixed(2) ?? '-' }} V
+                        <span class="badge">
+                          {{ getLatestEntry(item.data)?.voltage.toFixed(2) }} V
                         </span>
-                        <span class="badge bg-blue-600 text-sm text-white py-3">
-                          {{ Object.values(item.data || {}).at(-1)?.power?.toFixed(2) ?? '-' }} W
+                        <span class="badge">
+                          {{ getLatestEntry(item.data)?.power.toFixed(2) }} W
                         </span>
-                        <span class="badge bg-blue-600 text-sm text-white py-3">
-                          {{ Object.values(item.data || {}).at(-1)?.energy?.toFixed(2) ?? '-' }} kWh
+                        <span class="badge">
+                          {{ getLatestEntry(item.data)?.energy.toFixed(2) }} kWh
                         </span>
-                        <span class="badge bg-blue-600 text-sm text-white py-3">
-                          {{ Object.values(item.data || {}).at(-1)?.power_factor?.toFixed(2) ?? '-' }}
+                        <span class="badge">
+                          {{ getLatestEntry(item.data)?.power_factor.toFixed(2) }}
                         </span>
-                      </div>
+                      </template>
+                      <template v-else>
+                        <span class="badge">-</span>
+                        <span class="badge">-</span>
+                        <span class="badge">-</span>
+                        <span class="badge">-</span>
+                        <span class="badge">-</span>
+                      </template>
                     </div>
                   </div>
                 </div>
@@ -277,6 +284,16 @@ interface KostData {
   pzem: EndDevice[];
 }
 
+interface PzemData {
+  current: number;
+  voltage: number;
+  power: number;
+  energy: number;
+  power_factor: number;
+  timestamp: string;
+}
+
+
 const isDesc = ref(false)
 const ratePerKWh = ref(500);
 const interval_data = ref(2000)
@@ -295,6 +312,11 @@ const kostInfo = ref({
   name: 'Kost Tante Yunia',
   address: 'Bangil, Pasuruan, Jawatimur',
 })
+
+function getLatestEntry(data: any): PzemData | undefined {
+  const entries = Object.values(data || {}) as PzemData[];
+  return entries.at(-1);
+}
 
 const pzemData: KostData = {
   name: "Kost Surabaya",
@@ -676,8 +698,8 @@ function getTotalEnergyAndCost(data: any) {
     };
   }
 
-  const first = entries[0];
-  const last = entries.at(-1);
+  const first: any = entries[0];
+  const last: any = entries.at(-1);
   const totalEnergy = (last.energy ?? 0) - (first.energy ?? 0);
   const totalCost = totalEnergy * ratePerKWh.value;
 
