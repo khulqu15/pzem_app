@@ -25,6 +25,14 @@
             <h3 class="text-lg font-bold">Setting</h3>
             <p class="py-4">Interval Data</p>
             <input type="text" @keyup="setDataInterval()" placeholder="Type here" class="input input-bordered w-full" v-model="interval_data" />
+            <p class="py-2 mt-4">Rate per kWh (Rp)</p>
+            <input
+              type="number"
+              placeholder="Rate per kWh"
+              class="input input-bordered w-full"
+              v-model="ratePerKWh"
+              @keyup="setRatePerKwh()"
+            />
             <form method="dialog" class="mt-2 flex justify-end">
               <button class="btn btn-primary text-white">Save</button>
             </form>
@@ -47,41 +55,46 @@
           </div>
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4 w-full">
             <card-view-vue :header="`PZEM ${selectedPzemIndex + 1} Data Table`">
-              <table class="table table-sm">
-                <thead>
-                  <tr>
-                    <th>
-                      #
-                    </th>
-                    <th>Cost (Rp)</th>
-                    <th>Voltage (V)</th>
-                    <th>Current (A)</th>
-                    <th>Power (W)</th>
-                    <th>Energy (kWh)</th>
-                    <th>Timestamp</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(item, idx) in tableData[selectedPzemIndex]?.data" :key="idx">
-                    <td>{{ idx + 1 }}</td>
-                    <td>{{ calculateCost(item.energy) }}</td>
-                    <td>{{ item.voltage }}</td>
-                    <td>{{ item.current }}</td>
-                    <td>{{ item.power }}</td>
-                    <td>{{ item.energy }}</td>
-                    <td>{{ item.timestamp }}</td>
-                  </tr>
-                  <tr>
-                    <td>-</td>
-                    <td>{{ getTotalEnergyAndCost(tableData[selectedPzemIndex]?.data).totalCost }}</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>{{ getTotalEnergyAndCost(tableData[selectedPzemIndex]?.data).totalEnergy }}</td>
-                    <td>-</td>
-                  </tr>
-                </tbody>
-              </table>
+              <div class="flex">
+                <button class="btn btn-primary" @click="isDesc = !isDesc">Sort data: {{ isDesc ? 'Terbaru' : 'Terlama' }}</button>
+              </div>
+              <div class="max-h-[70vh] overflow-y-auto">
+                <table class="table table-sm">
+                  <thead>
+                    <tr>
+                      <th>
+                        #
+                      </th>
+                      <th>Cost (Rp)</th>
+                      <th>Voltage (V)</th>
+                      <th>Current (A)</th>
+                      <th>Power (W)</th>
+                      <th>Energy (kWh)</th>
+                      <th>Timestamp</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(item, idx) in tableData[selectedPzemIndex]?.data" :key="idx">
+                      <td>{{ isDesc ? tableData[selectedPzemIndex].data.length - idx : idx + 1 }}</td>
+                      <td>{{ calculateCost(item.energy) }}</td>
+                      <td>{{ item.voltage }}</td>
+                      <td>{{ item.current }}</td>
+                      <td>{{ item.power }}</td>
+                      <td>{{ item.energy }}</td>
+                      <td>{{ item.timestamp }}</td>
+                    </tr>
+                    <tr>
+                      <td>-</td>
+                      <td>{{ getTotalEnergyAndCost(tableData[selectedPzemIndex]?.data).totalCost ?? '0' }}</td>
+                      <td>-</td>
+                      <td>-</td>
+                      <td>-</td>
+                      <td>{{ getTotalEnergyAndCost(tableData[selectedPzemIndex]?.data).totalEnergy ?? '0' }}</td>
+                      <td>-</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </card-view-vue>
             <card-view-vue :header="`PZEM ${selectedPzemIndex + 1} Chart`">
             <waves-chart-vue
@@ -204,11 +217,21 @@
                         </p>
                       </div>
                       <div>
-                        <span class="badge bg-blue-600 text-sm text-white py-3">{{ item.data[item.data.length - 1].current.toFixed(2) }} A</span>
-                        <span class="badge bg-blue-600 text-sm text-white py-3">{{ item.data[item.data.length - 1].voltage.toFixed(2) }} V</span>
-                        <span class="badge bg-blue-600 text-sm text-white py-3">{{ item.data[item.data.length - 1].power.toFixed(2) }} W</span>
-                        <span class="badge bg-blue-600 text-sm text-white py-3">{{ item.data[item.data.length - 1].energy.toFixed(2) }} kWh</span>
-                        <span class="badge bg-blue-600 text-sm text-white py-3">{{ item.data[item.data.length - 1].power_factor.toFixed(2) }}</span>
+                        <span class="badge bg-blue-600 text-sm text-white py-3">
+                          {{ Object.values(item.data || {}).at(-1)?.current?.toFixed(2) ?? '-' }} A
+                        </span>
+                        <span class="badge bg-blue-600 text-sm text-white py-3">
+                          {{ Object.values(item.data || {}).at(-1)?.voltage?.toFixed(2) ?? '-' }} V
+                        </span>
+                        <span class="badge bg-blue-600 text-sm text-white py-3">
+                          {{ Object.values(item.data || {}).at(-1)?.power?.toFixed(2) ?? '-' }} W
+                        </span>
+                        <span class="badge bg-blue-600 text-sm text-white py-3">
+                          {{ Object.values(item.data || {}).at(-1)?.energy?.toFixed(2) ?? '-' }} kWh
+                        </span>
+                        <span class="badge bg-blue-600 text-sm text-white py-3">
+                          {{ Object.values(item.data || {}).at(-1)?.power_factor?.toFixed(2) ?? '-' }}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -254,6 +277,8 @@ interface KostData {
   pzem: EndDevice[];
 }
 
+const isDesc = ref(false)
+const ratePerKWh = ref(500);
 const interval_data = ref(2000)
 const devices = ref<EndDevice[]>([]);
 const form = ref<EndDevice>({ name: '', location: '', data: []});
@@ -417,11 +442,21 @@ function getTotalCostAllPzem() {
   if (!devices.value.length) return "Rp 0";
 
   const totalCost = devices.value.reduce((total, device) => {
-    const deviceCost = device.data.reduce((sum, entry) => sum + (entry.energy || 0) * ratePerKWh, 0);
-    return total + deviceCost;
+    const entries = Object.values(device.data || {});
+    if (entries.length < 2) return total;
+
+    const energyUsed = (entries.at(-1).energy ?? 0) - (entries[0].energy ?? 0);
+    return total + energyUsed * ratePerKWh.value;
   }, 0);
 
   return `Rp ${totalCost.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`;
+}
+
+
+function setRatePerKwh() {
+  setTimeout(() => {
+    set(firebaseRef(database, '/pzem/ratePerKwh'), ratePerKWh.value);
+  }, 400)
 }
 
 async function confirmDeleteDevice() {
@@ -436,7 +471,6 @@ async function confirmDeleteDevice() {
     }
   }
 }
-const ratePerKWh = 500;
 
 function setDataInterval() {
   set(firebaseRef(database, '/pzem/interval'), interval_data.value)
@@ -444,7 +478,7 @@ function setDataInterval() {
 
 function calculateCost(energy: number): string {
   if (!energy) return "Rp 0";
-  const cost = energy * ratePerKWh;
+  const cost = energy * ratePerKWh.value / 1000;
   return `Rp ${cost.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`;
 }
 
@@ -577,9 +611,16 @@ function fetchPzemData() {
       energyData.value = [];
       devices.value = data.pzem
 
+      setTimeout(() => {
+        ratePerKWh.value = data.ratePerKwh
+        console.log(data.ratePerKwh)
+      }, 300)
+
       data.pzem.forEach((pzemEntry: any, index: number) => {
         const key = `PZEM ${index + 1}`;
-        const deviceData = pzemEntry.data;
+        const deviceDataObj = pzemEntry.data;
+        const deviceData = Object.values(deviceDataObj);
+        console.log(pzemEntry.data)
 
         tableData.value.push({ key, data: deviceData });
 
@@ -600,6 +641,13 @@ function fetchPzemData() {
           values: deviceData.map((entry: any) => ({ value: entry.energy, date: entry.timestamp }))
         });
       });
+      tableData.value.sort((a: any, b: any) => {
+        const dateA = new Date(`1970-01-01T${a.data.timestamp}`);
+        const dateB = new Date(`1970-01-01T${b.data.timestamp}`);
+        return isDesc.value
+          ? dateB.getTime() - dateA.getTime()
+          : dateA.getTime() - dateB.getTime();
+      });
     } else {
       devices.value = []
       console.log("No data available");
@@ -619,23 +667,24 @@ async function deleteByKey(key: string) {
   }
 }
 
-function getTotalEnergyAndCost(data: any[]) {
-  const totalEnergy = data.reduce((sum, entry) => sum + (entry.energy || 0), 0);
-  const totalCost = totalEnergy * ratePerKWh;
+function getTotalEnergyAndCost(data: any) {
+  const entries = Object.values(data || {});
+  if (entries.length < 2) {
+    return {
+      totalEnergy: "0.00",
+      totalCost: "Rp 0"
+    };
+  }
+
+  const first = entries[0];
+  const last = entries.at(-1);
+  const totalEnergy = (last.energy ?? 0) - (first.energy ?? 0);
+  const totalCost = totalEnergy * ratePerKWh.value;
 
   return {
     totalEnergy: totalEnergy.toFixed(2),
     totalCost: `Rp ${totalCost.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`
   };
-}
-async function deleteAll() {
-  try {
-    await remove(firebaseRef(database, 'pzem_zigbee/data'));
-    tableData.value = [];
-    console.log("All entries deleted successfully");
-  } catch (error) {
-    console.error("Error deleting all entries:", error);
-  }
 }
 
 function exportToExcel() {
