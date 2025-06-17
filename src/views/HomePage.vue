@@ -8,14 +8,31 @@
               <h1 class="flex items-center gap-4 text-lg font-bold text-blue-600"><Icon icon="mynaui:building-solid" width="32" height="32" /></h1>
             </div>
             <div class="flex items-center gap-3">
-              <button class="btn bg-blue-600 text-white opacity-10" @click="startSimulation()">P</button>
-              <button class="btn bg-blue-600 text-white opacity-10" @click="stopSimulation()">S</button>
-              <button class="btn" @click="tab = 'ownerData'" :class="{'bg-blue-600 text-white hover:bg-blue-700': tab == 'ownerData', 'hover:bg-blue-600 hover:text-white btn-ghost': tab != 'ownerData'}">Owner</button>
-              <button class="btn" @click="tab = 'userData'" :class="{'bg-blue-600 text-white hover:bg-blue-700': tab == 'userData', 'hover:bg-blue-600 hover:text-white btn-ghost': tab != 'userData'}">User</button>
+              <button class="btn bg-blue-600 text-white opacity-0" @click="startSimulation()">P</button>
+              <button class="btn bg-blue-600 text-white opacity-0" @click="stopSimulation()">S</button>
+              <button class="btn" @click="tab = 'ownerData'" :class="{'bg-blue-600 text-white hover:bg-blue-700': tab == 'ownerData', 'hover:bg-blue-600 hover:text-white btn-ghost': tab != 'ownerData'}">Pemilik</button>
+              <button class="btn" @click="tab = 'userData'" :class="{'bg-blue-600 text-white hover:bg-blue-700': tab == 'userData', 'hover:bg-blue-600 hover:text-white btn-ghost': tab != 'userData'}">Penyewa</button>
               <button class="btn" @click="tab = 'historyData'" :class="{'bg-blue-600 text-white hover:bg-blue-700': tab == 'historyData', 'hover:bg-blue-600 hover:text-white btn-ghost': tab != 'historyData'}">History</button>
+              <button class="btn" onclick="my_modal_2.showModal()">Setting</button>
             </div>
           </div>
         </div>
+        <dialog id="my_modal_2" class="modal">
+          <div class="modal-box">
+            <form method="dialog">
+              <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+            </form>
+            <h3 class="text-lg font-bold">Setting</h3>
+            <p class="py-4">Interval Data</p>
+            <input type="text" @keyup="setDataInterval()" placeholder="Type here" class="input input-bordered w-full" v-model="interval_data" />
+            <form method="dialog" class="mt-2 flex justify-end">
+              <button class="btn btn-primary text-white">Save</button>
+            </form>
+          </div>
+          <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+          </form>
+        </dialog>
         <div v-if="tab == 'historyData'">
           <div class="mb-4 pt-32 px-8 flex items-center justify-between">
             <div>
@@ -237,6 +254,7 @@ interface KostData {
   pzem: EndDevice[];
 }
 
+const interval_data = ref(2000)
 const devices = ref<EndDevice[]>([]);
 const form = ref<EndDevice>({ name: '', location: '', data: []});
 const isEditing = ref(false);
@@ -420,6 +438,10 @@ async function confirmDeleteDevice() {
 }
 const ratePerKWh = 500;
 
+function setDataInterval() {
+  set(firebaseRef(database, '/pzem/interval'), interval_data.value)
+}
+
 function calculateCost(energy: number): string {
   if (!energy) return "Rp 0";
   const cost = energy * ratePerKWh;
@@ -547,7 +569,7 @@ function fetchPzemData() {
       beds.value = data.pzem
       kostInfo.value.name = data.name
       kostInfo.value.address = data.location
-
+      interval_data.value = data.interval
       tableData.value = [];
       voltageData.value = [];
       currentData.value = [];
