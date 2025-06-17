@@ -467,7 +467,7 @@ function getTotalCostAllPzem() {
     const entries = Object.values(device.data || {});
     if (entries.length < 2) return total;
 
-    const energyUsed = (entries.at(-1).energy ?? 0) - (entries[0].energy ?? 0);
+    const energyUsed = ((entries.at(-1)?.energy ?? 0) - (entries[0]?.energy ?? 0));
     return total + energyUsed * ratePerKWh.value;
   }, 0);
 
