@@ -291,7 +291,6 @@ interface PzemData {
   timestamp: string;
 }
 
-
 const isDesc = ref(false)
 const ratePerKWh = ref(500);
 const interval_data = ref(2000)
@@ -313,7 +312,20 @@ const kostInfo = ref({
 
 function getLatestEntry(data: any): PzemData | undefined {
   const entries = Object.values(data || {}) as PzemData[];
-  console.log(entries.at(-1))
+  console.log(data)
+  if (!data) {
+    // return pzemData
+    console.log("No data available, returning default entry");
+    return {
+      current: 0,
+      energy: 0,
+      frequency: 0,
+      power: 0,
+      power_factor: 0,
+      timestamp: new Date().toISOString(),
+      voltage: 0
+    };
+  }
   return entries.at(-1);
 }
 
@@ -640,14 +652,11 @@ function fetchPzemData() {
 
       setTimeout(() => {
         ratePerKWh.value = data.ratePerKwh
-        console.log(data.ratePerKwh)
       }, 300)
-
       data.pzem.forEach((pzemEntry: any, index: number) => {
-        const key = `PZEM ${index + 1}`;
-        const deviceDataObj = pzemEntry.data;
+        const key = `PZEM ${index}`;
+        const deviceDataObj = pzemEntry;
         const deviceData = Object.values(deviceDataObj);
-        console.log(pzemEntry.data)
 
         tableData.value.push({ key, data: deviceData });
 
